@@ -401,15 +401,37 @@ function getCurrentGuildRank() {
     if (!player.guild) player.guild = { gp: 0, rank: "F", quests: [], completedCount: 0 };
     const rId = player.guild.rank || "F";
     const found = (typeof GUILD_RANKS !== "undefined") ? GUILD_RANKS.find(r => r.rank === rId) : null;
-    return found || { rank: "F", reqGp: 0, activeSlots: 3, passiveSlots: 3, allStats: 0, dropBonus: 0, exPtBonus: 0, title: "見習いギルド員" };
+    return found || {
+        rank: "F",
+        reqGp: 0,
+        name: "ランクF: 見習いギルド員",
+        title: "見習いギルド員",
+        activeSlots: 3,
+        maxActiveSlots: 3,
+        passiveSlots: 3,
+        maxPassiveSlots: 3,
+        allStats: 0,
+        dropBonus: 0,
+        exPtBonus: 0,
+        exchangeBonus: 1.0,
+        desc: "初期ランク（アクティブ3枠 / パッシブ3枠）"
+    };
 }
 
 function getMaxActiveSkillSlots() {
-    return getCurrentGuildRank().activeSlots || 3;
+    const gr = getCurrentGuildRank();
+    return gr.activeSlots || gr.maxActiveSlots || 3;
 }
 
 function getMaxPassiveSkillSlots() {
-    return getCurrentGuildRank().passiveSlots || 3;
+    const gr = getCurrentGuildRank();
+    return gr.passiveSlots || gr.maxPassiveSlots || 3;
+}
+
+// 👑 プレイヤー称号（二つ名）マスター取得ヘルパー
+function getPlayerTitle(titleId) {
+    if (!titleId || typeof PLAYER_TITLES === "undefined") return null;
+    return PLAYER_TITLES.find(t => t.id === titleId) || null;
 }
 
 // --- 👑 ジョブ超越マスタリー＆特化育成ヘルパー関数 ---
@@ -1188,14 +1210,14 @@ function calcStatus() {
     const gRankEl = document.getElementById('display-guild-rank');
     const gTitleEl = document.getElementById('display-guild-rank-title');
     const gGpEl = document.getElementById('display-guild-gp');
-    if (gRankEl) gRankEl.innerText = guildRank.rank;
-    if (gTitleEl) gTitleEl.innerText = guildRank.name;
+    if (gRankEl) gRankEl.innerText = guildRank.rank || "F";
+    if (gTitleEl) gTitleEl.innerText = guildRank.title || guildRank.name || "見習いギルド員";
     if (gGpEl) gGpEl.innerText = player.guild?.gp || 0;
 
     const eqTitleEl = document.getElementById('display-equipped-title');
     if (eqTitleEl) {
-        const curTitle = player.equippedTitle && PLAYER_TITLES[player.equippedTitle];
-        eqTitleEl.innerText = curTitle ? curTitle.name : "なし";
+        const curTitle = getPlayerTitle(player.equippedTitle);
+        eqTitleEl.innerText = curTitle ? curTitle.name : (player.equippedTitle || "なし");
     }
 
     const maxActEl = document.getElementById('max-active-slots');
@@ -1235,36 +1257,52 @@ function updateDungeonStatusUI() {
     if (dMaxMp) dMaxMp.innerText = player.maxMp;
 
     const enemyStatus = document.getElementById('dungeon-enemy-status');
+    const battleIndicator = document.getElementById('dungeon-battle-indicator');
+    const hpBarWrap = document.getElementById('dungeon-enemy-hpbar-wrap');
+    const hpBar = document.getElementById('dungeon-enemy-hpbar');
     const btnCareful = document.getElementById('btn-manual-careful');
     const btnRush = document.getElementById('btn-manual-rush');
     const btnFocus = document.getElementById('btn-manual-focus');
 
     const isCombat = !!enemy;
     if (isCombat) {
+        if (battleIndicator) {
+            battleIndicator.innerHTML = enemy.isBoss ? `<span style="color:#ff4444;">🚨 BOSS交戦中</span>` : `<span style="color:#ffaa00;">⚔️ 交戦中</span>`;
+        }
         if (enemyStatus) {
-            const bossBadge = enemy.isBoss ? '🚨 <b style="color:#ff4444;">[BOSS]</b> ' : '⚔️ ';
+            const bossBadge = enemy.isBoss ? '<b style="color:#ff4444;">[BOSS]</b> ' : '';
             const hpText = `${bossBadge}<b style="color:#ffcc00;">${enemy.name}</b> (HP: <b>${Math.max(0, enemy.hp)}</b>/${enemy.maxHp})`;
             if (_lastEnemyHpText !== hpText) {
                 _lastEnemyHpText = hpText;
                 enemyStatus.innerHTML = hpText;
             }
         }
+        if (hpBarWrap) hpBarWrap.style.display = "block";
+        if (hpBar) {
+            const pct = Math.max(0, Math.min(100, Math.floor((enemy.hp / enemy.maxHp) * 100)));
+            hpBar.style.width = pct + "%";
+            hpBar.style.background = pct > 50 ? "#2ea043" : (pct > 20 ? "#ffaa00" : "#e55353");
+        }
         if (_lastCombatState !== true) {
             _lastCombatState = true;
-            if (btnCareful) btnCareful.innerHTML = `🛡️ 堅実攻撃 (MP:0)<br><span style="font-size: 11px; color: #ddd;">(HP・MP微回復＋攻撃)</span>`;
+            if (btnCareful) btnCareful.innerHTML = `🛡️ 堅実攻撃 (MP:0)<br><span style="font-size: 11px; color: #ddd;">(微回復＋攻撃)</span>`;
             if (btnRush) btnRush.innerHTML = `💥 強襲攻撃 (MP:3)<br><span style="font-size: 11px; color: #ffd;">(威力1.3倍・熟練1.5倍)</span>`;
-            if (btnFocus) btnFocus.innerHTML = `🎯 急所狙い (MP:3)<br><span style="font-size: 11px; color: #dfd;">(スキル率2倍・泥率+50%)</span>`;
+            if (btnFocus) btnFocus.innerHTML = `🎯 急所狙い (MP:3)<br><span style="font-size: 11px; color: #dfd;">(会心UP・泥率+50%)</span>`;
         }
     } else {
+        if (battleIndicator) {
+            battleIndicator.innerHTML = `<span style="color:#88ff88;">🌲 探索中</span>`;
+        }
         if (enemyStatus && _lastEnemyHpText !== "safe") {
             _lastEnemyHpText = "safe";
-            enemyStatus.innerHTML = `<span style="color: #aaa;">🌲 探索中（周囲は安全）</span>`;
+            enemyStatus.innerHTML = `<span style="color: #aaa;">🌲 周囲は安全（接敵なし）</span>`;
         }
+        if (hpBarWrap) hpBarWrap.style.display = "none";
         if (_lastCombatState !== false) {
             _lastCombatState = false;
-            if (btnCareful) btnCareful.innerHTML = `👣 慎重に進む<br><span style="font-size: 11px; color: #ddd;">(+1歩 / HP・MP微回復)</span>`;
-            if (btnRush) btnRush.innerHTML = `⚔️ 強行突破 (MP:3)<br><span style="font-size: 11px; color: #ffd;">(+2〜3歩 / レア敵・熟練1.5倍)</span>`;
-            if (btnFocus) btnFocus.innerHTML = `🔍 集中探索 (MP:3)<br><span style="font-size: 11px; color: #dfd;">(+1歩 / 良称号採取・イベント)</span>`;
+            if (btnCareful) btnCareful.innerHTML = `👣 慎重に進む<br><span style="font-size: 11px; color: #ddd;">(+1歩 / 回復)</span>`;
+            if (btnRush) btnRush.innerHTML = `⚔️ 強行突破 (MP:3)<br><span style="font-size: 11px; color: #ffd;">(+2〜3歩 / 熟練1.5倍)</span>`;
+            if (btnFocus) btnFocus.innerHTML = `🔍 集中探索 (MP:3)<br><span style="font-size: 11px; color: #dfd;">(+1歩 / イベント)</span>`;
         }
     }
 }
@@ -3402,6 +3440,7 @@ function claimGuildQuest(questIndex) {
     if (!q || q.current < q.req) return;
 
     player.guild.gp += q.reward.gp;
+    player.guild.completedCount = (player.guild.completedCount || 0) + 1;
     player.exchangePoints = (player.exchangePoints || 0) + q.reward.exchangePt;
     player.statPoints += q.reward.statPt;
     gainExp(q.reward.exp);
@@ -3436,7 +3475,7 @@ function rerollGuildQuests() {
 
 // ギルドランク昇格
 function checkGuildRankUpgrade() {
-    if (!player.guild) player.guild = { rank: "F", gp: 0, quests: [] };
+    if (!player.guild) player.guild = { rank: "F", gp: 0, quests: [], completedCount: 0 };
     const curRankIdx = GUILD_RANKS.findIndex(r => r.rank === player.guild.rank);
     if (curRankIdx === -1 || curRankIdx >= GUILD_RANKS.length - 1) {
         addLog("<span style='color:#ffd700;'>👑 既に最高ギルドランクに到達しています！</span>");
@@ -3451,7 +3490,12 @@ function checkGuildRankUpgrade() {
     player.guild.rank = nextRank.rank;
     player.statPoints += 5; // 昇格ボーナスとしてステPt+5！
 
-    addLog(`📜👑✨ <b style="color:#ff66ff; font-size:14px;">【ギルドランク昇格！！】</b> 冒険者ギルドで認められ、<b style="color:#00ffcc;">『${nextRank.name}』</b> に昇格した！！（全基礎ステ+${nextRank.allStats}, 泥率+${nextRank.dropBonus}%, 納品Pt×${nextRank.exchangeBonus}, アクティブ最大${nextRank.maxActiveSlots}枠/パッシブ最大${nextRank.maxPassiveSlots}枠に拡張！ 昇格ボーナス: ステPt+5）`);
+    const rankDisplayName = nextRank.name || `ランク${nextRank.rank}: ${nextRank.title}`;
+    const actSlots = nextRank.activeSlots || nextRank.maxActiveSlots || 3;
+    const pasSlots = nextRank.passiveSlots || nextRank.maxPassiveSlots || 3;
+    const exPtBonus = nextRank.exPtBonus || 0;
+
+    addLog(`📜👑✨ <b style="color:#ff66ff; font-size:14px;">【ギルドランク昇格！！】</b> 冒険者ギルドで認められ、<b style="color:#00ffcc;">『${rankDisplayName}』</b> に昇格した！！（全基礎ステ+${nextRank.allStats}, 泥率+${nextRank.dropBonus}%, 納品Pt+${exPtBonus}%, アクティブ最大${actSlots}枠/パッシブ最大${pasSlots}枠に拡張！ 昇格ボーナス: ステPt+5）`);
 
     calcStatus();
     updateGuildQuestUI();
@@ -3482,17 +3526,23 @@ function updateGuildQuestUI() {
             canUpgrade = player.guild.gp >= nextRank.reqGp;
         }
 
+        const curDisplayName = curRank.name || `ランク${curRank.rank}: ${curRank.title || "見習いギルド員"}`;
+        const nextDisplayName = nextRank ? (nextRank.name || `ランク${nextRank.rank}: ${nextRank.title}`) : "";
+        const curActSlots = curRank.activeSlots || curRank.maxActiveSlots || 3;
+        const curPasSlots = curRank.passiveSlots || curRank.maxPassiveSlots || 3;
+        const curExPtBonus = curRank.exPtBonus || 0;
+
         statusBox.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <div>
                     <span style="font-size:12px; color:#aaa;">📜 現在の冒険者ギルドランク:</span><br>
-                    <b style="font-size:18px; color:#00ffcc;">${curRank.name}</b>
+                    <b style="font-size:18px; color:#00ffcc;">${curDisplayName}</b>
                     <span style="margin-left:10px; color:#ffd700; font-size:14px; font-weight:bold;">🪙 所持GP: ${player.guild.gp} GP</span>
                 </div>
                 <div>
                     ${nextRank ? `
                         <button onclick="checkGuildRankUpgrade()" ${canUpgrade ? '' : 'disabled'} style="padding:6px 14px; font-size:13px; font-weight:bold; background:${canUpgrade ? '#238636' : '#333'}; border:1px solid ${canUpgrade ? '#2ea043' : '#444'}; margin-bottom:0;">
-                            🆙 『${nextRank.name}』へ昇格する！
+                            🆙 『${nextDisplayName}』へ昇格する！
                         </button>
                     ` : '<span style="color:#ffd700; font-weight:bold;">👑 最高栄誉ランク達成</span>'}
                 </div>
@@ -3506,8 +3556,8 @@ function updateGuildQuestUI() {
             </div>
             <div style="background:#111822; border:1px solid #283a4f; border-radius:4px; padding:6px 10px; font-size:12px; color:#ccc;">
                 <span style="color:#88ff88; font-weight:bold;">✨ 発動中のギルド特典:</span> 
-                全基礎ステ+<b>${curRank.allStats}</b> ｜ ドロップ補正+<b>${curRank.dropBonus}%</b> ｜ 納品交換Pt <b>×${curRank.exchangeBonus}倍</b> ｜ 
-                アクティブスキル枠: <b style="color:#00ffcc;">${curRank.maxActiveSlots}枠</b> ｜ パッシブスキル枠: <b style="color:#00ffcc;">${curRank.maxPassiveSlots}枠</b>
+                全基礎ステ+<b>${curRank.allStats || 0}</b> ｜ ドロップ補正+<b>${curRank.dropBonus || 0}%</b> ｜ 納品交換Pt <b>+${curExPtBonus}%</b> ｜ 
+                アクティブスキル枠: <b style="color:#00ffcc;">${curActSlots}枠</b> ｜ パッシブスキル枠: <b style="color:#00ffcc;">${curPasSlots}枠</b>
             </div>
         `;
     }
@@ -3558,11 +3608,19 @@ function updateGuildQuestUI() {
 function checkAchievements() {
     if (!player.unlockedTitles) player.unlockedTitles = [];
     if (!player.statsTrack) player.statsTrack = { totalSteps: 0, totalKills: 0, bossKills: 0, craftCount: 0, totalCrits: 0 };
+    if (typeof PLAYER_TITLES === "undefined") return;
 
     let newlyUnlocked = false;
-    for (const [id, t] of Object.entries(PLAYER_TITLES)) {
+    PLAYER_TITLES.forEach(t => {
+        const id = t.id;
         if (!player.unlockedTitles.includes(id)) {
-            if (typeof t.check === "function" && t.check(player)) {
+            let passed = false;
+            if (typeof t.check === "function") {
+                passed = t.check(player);
+            } else if (id === "駆け出し冒険者") {
+                passed = true;
+            }
+            if (passed) {
                 player.unlockedTitles.push(id);
                 newlyUnlocked = true;
                 const rPt = t.rewardStatPt || 0;
@@ -3573,7 +3631,8 @@ function checkAchievements() {
                 }
             }
         }
-    }
+    });
+
     if (newlyUnlocked) {
         calcStatus();
         updateAchievementsUI();
@@ -3583,10 +3642,10 @@ function checkAchievements() {
 // 二つ名の着脱
 function equipPlayerTitle(titleId) {
     if (!player.unlockedTitles || !player.unlockedTitles.includes(titleId)) return;
-    const t = PLAYER_TITLES[titleId];
+    const t = getPlayerTitle(titleId);
     if (!t) return;
     player.equippedTitle = titleId;
-    addLog(`👑 <b style="color:#ffd700;">二つ名を『${t.name}』に付け替えた！</b> (${t.desc})`);
+    addLog(`👑 <b style="color:#ffd700;">二つ名を『${t.name}』に付け替えた！</b> (${t.buffDesc || t.desc || ""})`);
     calcStatus();
     updateAchievementsUI();
 }
@@ -3598,9 +3657,11 @@ function updateAchievementsUI() {
 
     if (!player.unlockedTitles) player.unlockedTitles = [];
     if (!player.statsTrack) player.statsTrack = { totalSteps: 0, totalKills: 0, bossKills: 0, craftCount: 0, totalCrits: 0 };
+    if (typeof PLAYER_TITLES === "undefined") return;
 
     list.innerHTML = "";
-    for (const [id, t] of Object.entries(PLAYER_TITLES)) {
+    PLAYER_TITLES.forEach(t => {
+        const id = t.id;
         const isUnlocked = player.unlockedTitles.includes(id);
         const isEquipped = player.equippedTitle === id;
 
@@ -3612,13 +3673,13 @@ function updateAchievementsUI() {
                     <b style="font-size:14px; color:${isEquipped ? '#ffd700' : (isUnlocked ? '#fff' : '#777')};">${isUnlocked ? t.name : '？？？ (' + t.name + ')'}</b>
                     ${isEquipped ? '<span style="background:#4d3800; border:1px solid #ffd700; color:#ffd700; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:bold;">👑 装着中</span>' : (isUnlocked ? '<span style="background:#163320; color:#7ee787; padding:1px 6px; border-radius:3px; font-size:10px;">解除済</span>' : '<span style="background:#2a2a2a; color:#888; padding:1px 6px; border-radius:3px; font-size:10px;">未解除</span>')}
                 </div>
-                <div style="font-size:12px; color:#bbb; margin-bottom:3px;">🔍 <b>条件:</b> <span style="color:${isUnlocked ? '#88ff88' : '#ccc'};">${t.condition}</span></div>
-                <div style="font-size:11px; color:#ffd700;">✨ <b>固有バフ:</b> ${t.desc} <span style="color:#aaa;">(実績解除ボーナス: ステPt+${t.rewardStatPt})</span></div>
+                <div style="font-size:12px; color:#bbb; margin-bottom:3px;">🔍 <b>条件:</b> <span style="color:${isUnlocked ? '#88ff88' : '#ccc'};">${t.condDesc || t.condition || ""}</span></div>
+                <div style="font-size:11px; color:#ffd700;">✨ <b>固有バフ:</b> ${t.buffDesc || t.desc || ""} <span style="color:#aaa;">(実績解除ボーナス: ステPt+${t.rewardStatPt || 0})</span></div>
             </div>
             <div style="text-align:right; min-width:110px;">
                 ${isUnlocked ? `
                     <button class="title-equip-btn" ${isEquipped ? 'disabled' : ''} style="width:100%; padding:6px 12px; font-size:12px; font-weight:bold; background:${isEquipped ? '#555' : '#6f42c1'}; border:1px solid ${isEquipped ? '#666' : '#8a63d2'}; margin-bottom:0;">
-                        ${isEquipped ? '装着中' : '称号を装着'}
+                        ${isEquipped ? '👑 装着中' : '称号を装着'}
                     </button>
                 ` : `<span style="font-size:11px; color:#666;">🔒 未達成</span>`}
             </div>
@@ -3628,7 +3689,7 @@ function updateAchievementsUI() {
             btn.onclick = () => equipPlayerTitle(id);
         }
         list.appendChild(card);
-    }
+    });
 }
 
 // --- 📖 3.8 冒険者図鑑UIの描画処理 ---

@@ -2407,15 +2407,15 @@ const SECRET_DISCOVERY_HINTS = [
 
 // 9. 📜 ギルドランク昇格マスターデータ（ギルド依頼達成でGPを貯めて昇格！スキルセット枠が最大6枠まで拡張！）
 const GUILD_RANKS = [
-    { rank: "F",   reqGp: 0,    activeSlots: 3, passiveSlots: 3, allStats: 0,  dropBonus: 0,  exPtBonus: 0,  title: "見習いギルド員",     desc: "初期ランク（アクティブ3枠 / パッシブ3枠）" },
-    { rank: "E",   reqGp: 100,  activeSlots: 3, passiveSlots: 3, allStats: 2,  dropBonus: 5,  exPtBonus: 5,  title: "新米ギルド冒険者",   desc: "全基礎ステ+2 / ドロップ率+5% / 納品Pt+5%" },
-    { rank: "D",   reqGp: 300,  activeSlots: 4, passiveSlots: 3, allStats: 5,  dropBonus: 10, exPtBonus: 10, title: "一人前の冒険者",     desc: "⚡アクティブスキル枠+1 (計4枠) / 全基礎ステ+5 / 泥率+10%" },
-    { rank: "C",   reqGp: 700,  activeSlots: 4, passiveSlots: 4, allStats: 9,  dropBonus: 15, exPtBonus: 15, title: "熟練の依頼請負人",   desc: "🌟パッシブスキル枠+1 (計4枠) / 全基礎ステ+9 / 泥率+15%" },
-    { rank: "B",   reqGp: 1500, activeSlots: 5, passiveSlots: 4, allStats: 15, dropBonus: 22, exPtBonus: 20, title: "ベテランハンター",   desc: "⚡アクティブスキル枠+1 (計5枠) / 全基礎ステ+15 / 泥率+22%" },
-    { rank: "A",   reqGp: 2800, activeSlots: 5, passiveSlots: 5, allStats: 22, dropBonus: 30, exPtBonus: 30, title: "特級ギルドエース",   desc: "🌟パッシブスキル枠+1 (計5枠) / 全基礎ステ+22 / 泥率+30%" },
-    { rank: "S",   reqGp: 5000, activeSlots: 6, passiveSlots: 5, allStats: 32, dropBonus: 40, exPtBonus: 40, title: "王国の英雄",         desc: "⚡アクティブスキル枠+1 (最大6枠!) / 全基礎ステ+32 / 泥率+40%" },
-    { rank: "SS",  reqGp: 8500, activeSlots: 6, passiveSlots: 6, allStats: 45, dropBonus: 55, exPtBonus: 50, title: "大陸屈指のグランドマスター", desc: "🌟パッシブスキル枠+1 (最大6枠!) / 全基礎ステ+45 / 泥率+55%" },
-    { rank: "SSS", reqGp: 14000,activeSlots: 6, passiveSlots: 6, allStats: 65, dropBonus: 80, exPtBonus: 75, title: "神話に謳われしギルドの覇者", desc: "👑全スキル最大6枠 / 全基礎ステ+65 / 泥率+80% / 納品Pt+75%" }
+    { rank: "F",   reqGp: 0,    name: "ランクF: 見習いギルド員",           title: "見習いギルド員",     activeSlots: 3, maxActiveSlots: 3, passiveSlots: 3, maxPassiveSlots: 3, allStats: 0,  dropBonus: 0,  exPtBonus: 0,  exchangeBonus: 1.0,  desc: "初期ランク（アクティブ3枠 / パッシブ3枠）" },
+    { rank: "E",   reqGp: 100,  name: "ランクE: 新米ギルド冒険者",         title: "新米ギルド冒険者",   activeSlots: 3, maxActiveSlots: 3, passiveSlots: 3, maxPassiveSlots: 3, allStats: 2,  dropBonus: 5,  exPtBonus: 5,  exchangeBonus: 1.05, desc: "全基礎ステ+2 / ドロップ率+5% / 納品Pt+5%" },
+    { rank: "D",   reqGp: 300,  name: "ランクD: 一人前の冒険者",           title: "一人前の冒険者",     activeSlots: 4, maxActiveSlots: 4, passiveSlots: 3, maxPassiveSlots: 3, allStats: 5,  dropBonus: 10, exPtBonus: 10, exchangeBonus: 1.10, desc: "⚡アクティブスキル枠+1 (計4枠) / 全基礎ステ+5 / 泥率+10%" },
+    { rank: "C",   reqGp: 700,  name: "ランクC: 熟練の依頼請負人",         title: "熟練の依頼請負人",   activeSlots: 4, maxActiveSlots: 4, passiveSlots: 4, maxPassiveSlots: 4, allStats: 9,  dropBonus: 15, exPtBonus: 15, exchangeBonus: 1.15, desc: "🌟パッシブスキル枠+1 (計4枠) / 全基礎ステ+9 / 泥率+15%" },
+    { rank: "B",   reqGp: 1500, name: "ランクB: ベテランハンター",         title: "ベテランハンター",   activeSlots: 5, maxActiveSlots: 5, passiveSlots: 4, maxPassiveSlots: 4, allStats: 15, dropBonus: 22, exPtBonus: 20, exchangeBonus: 1.20, desc: "⚡アクティブスキル枠+1 (計5枠) / 全基礎ステ+15 / 泥率+22%" },
+    { rank: "A",   reqGp: 2800, name: "ランクA: 特級ギルドエース",         title: "特級ギルドエース",   activeSlots: 5, maxActiveSlots: 5, passiveSlots: 5, maxPassiveSlots: 5, allStats: 22, dropBonus: 30, exPtBonus: 30, exchangeBonus: 1.30, desc: "🌟パッシブスキル枠+1 (計5枠) / 全基礎ステ+22 / 泥率+30%" },
+    { rank: "S",   reqGp: 5000, name: "ランクS: 王国の英雄",               title: "王国の英雄",         activeSlots: 6, maxActiveSlots: 6, passiveSlots: 5, maxPassiveSlots: 5, allStats: 32, dropBonus: 40, exPtBonus: 40, exchangeBonus: 1.40, desc: "⚡アクティブスキル枠+1 (最大6枠!) / 全基礎ステ+32 / 泥率+40%" },
+    { rank: "SS",  reqGp: 8500, name: "ランクSS: 大陸屈指のグランドマスター", title: "大陸屈指のグランドマスター", activeSlots: 6, maxActiveSlots: 6, passiveSlots: 6, maxPassiveSlots: 6, allStats: 45, dropBonus: 55, exPtBonus: 50, exchangeBonus: 1.50, desc: "🌟パッシブスキル枠+1 (最大6枠!) / 全基礎ステ+45 / 泥率+55%" },
+    { rank: "SSS", reqGp: 14000,name: "ランクSSS: 神話に謳われしギルドの覇者", title: "神話に謳われしギルドの覇者", activeSlots: 6, maxActiveSlots: 6, passiveSlots: 6, maxPassiveSlots: 6, allStats: 65, dropBonus: 80, exPtBonus: 75, exchangeBonus: 1.75, desc: "👑全スキル最大6枠 / 全基礎ステ+65 / 泥率+80% / 納品Pt+75%" }
 ];
 
 // 10. 🏆 実績＆プレイヤー称号（二つ名）マスターデータ
@@ -2425,128 +2425,194 @@ const PLAYER_TITLES = [
         id: "駆け出し冒険者",
         name: "駆け出し冒険者",
         condDesc: "初期から所持",
+        condition: "初期から所持",
         rewardStatPt: 0,
         buffDesc: "HP+15, MP+5, 獲得EXP+5%",
-        bonus: { hp: 15, mp: 5, expPct: 5 }
+        desc: "HP+15, MP+5, 獲得EXP+5%",
+        bonus: { hp: 15, mp: 5, expPct: 5 },
+        check: () => true
     },
     {
         id: "森の開拓者",
         name: "森の開拓者",
         condDesc: "エリア1 BOSS「森の主ベア」を討伐する",
+        condition: "エリア1 BOSS「森の主ベア」を討伐する",
         rewardStatPt: 5,
         buffDesc: "HP+40, ATK+6, DEF+5, 採取獲得数+10%確率UP",
-        bonus: { hp: 40, atk: 6, def: 5 }
+        desc: "HP+40, ATK+6, DEF+5, 採取獲得数+10%確率UP",
+        bonus: { hp: 40, atk: 6, def: 5 },
+        check: (p) => (p.compendium?.monsters?.["森の主ベア"]?.defeatCount || 0) > 0 || (p.statsTrack?.bossKills || 0) >= 1
     },
     {
         id: "百戦錬磨の狩人",
         name: "百戦錬磨の狩人",
         condDesc: "モンスター累計討伐数 200体 達成",
+        condition: "モンスター累計討伐数 200体 達成",
         rewardStatPt: 5,
         buffDesc: "ATK+12, DEX+5, 命中率+5%, ドロップ率+10%",
-        bonus: { atk: 12, dex: 5, hit: 5, drop: 10 }
+        desc: "ATK+12, DEX+5, 命中率+5%, ドロップ率+10%",
+        bonus: { atk: 12, dex: 5, hit: 5, drop: 10 },
+        check: (p) => (p.statsTrack?.totalKills || 0) >= 200
     },
     {
         id: "千人斬りの猛者",
         name: "千人斬りの猛者",
         condDesc: "モンスター累計討伐数 1,000体 達成",
+        condition: "モンスター累計討伐数 1,000体 達成",
         rewardStatPt: 10,
         buffDesc: "ATK+28, MATK+28, STR+8, AGI+8, 会心率+8%",
-        bonus: { atk: 28, matk: 28, str: 8, agi: 8, critPct: 8 }
+        desc: "ATK+28, MATK+28, STR+8, AGI+8, 会心率+8%",
+        bonus: { atk: 28, matk: 28, str: 8, agi: 8, critPct: 8 },
+        check: (p) => (p.statsTrack?.totalKills || 0) >= 1000
     },
     {
         id: "不屈の万里行者",
         name: "不屈の万里行者",
         condDesc: "累計探索歩数 1,500歩 達成",
+        condition: "累計探索歩数 1,500歩 達成",
         rewardStatPt: 5,
         buffDesc: "HP+80, VIT+8, AGI+8, 回避率+6%",
-        bonus: { hp: 80, vit: 8, agi: 8, eva: 6 }
+        desc: "HP+80, VIT+8, AGI+8, 回避率+6%",
+        bonus: { hp: 80, vit: 8, agi: 8, eva: 6 },
+        check: (p) => (p.statsTrack?.totalSteps || 0) >= 1500
     },
     {
         id: "名匠の弟子",
         name: "名匠の弟子",
         condDesc: "累計クラフト回数 50回 達成",
+        condition: "累計クラフト回数 50回 達成",
         rewardStatPt: 5,
         buffDesc: "DEX+6, LUC+6, 交換屋納品Pt+15%, ドロップ率+12%",
-        bonus: { dex: 6, luc: 6, exPtPct: 15, drop: 12 }
+        desc: "DEX+6, LUC+6, 交換屋納品Pt+15%, ドロップ率+12%",
+        bonus: { dex: 6, luc: 6, exPtPct: 15, drop: 12 },
+        check: (p) => (p.statsTrack?.craftCount || 0) >= 50
     },
     {
         id: "神匠の継承者",
         name: "神匠の継承者",
         condDesc: "装備を +10 以上に鍛錬する（または累計クラフト300回）",
+        condition: "装備を +10 以上に鍛錬する（または累計クラフト300回）",
         rewardStatPt: 10,
         buffDesc: "全基礎ステ+10, ATK+30, DEF+25, 交換屋納品Pt+25%",
-        bonus: { allStats: 10, atk: 30, def: 25, exPtPct: 25 }
+        desc: "全基礎ステ+10, ATK+30, DEF+25, 交換屋納品Pt+25%",
+        bonus: { allStats: 10, atk: 30, def: 25, exPtPct: 25 },
+        check: (p) => {
+            if ((p.statsTrack?.craftCount || 0) >= 300) return true;
+            if (p.equipment) {
+                for (const slot in p.equipment) {
+                    const eq = p.equipment[slot];
+                    if (eq && typeof eq === "object" && (eq.refine || 0) >= 10) return true;
+                }
+            }
+            if (p.inventory) {
+                for (const name in p.inventory) {
+                    if (p.inventory[name]?.items) {
+                        for (const it of p.inventory[name].items) {
+                            if ((it.refine || 0) >= 10) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
     },
     {
         id: "閃光のクリティカルマスター",
         name: "閃光のクリティカルマスター",
         condDesc: "累計クリティカル発動 150回 達成",
+        condition: "累計クリティカル発動 150回 達成",
         rewardStatPt: 8,
         buffDesc: "DEX+10, AGI+10, 会心率+12%, ATK+20",
-        bonus: { dex: 10, agi: 10, critPct: 12, atk: 20 }
+        desc: "DEX+10, AGI+10, 会心率+12%, ATK+20",
+        bonus: { dex: 10, agi: 10, critPct: 12, atk: 20 },
+        check: (p) => (p.statsTrack?.totalCrits || 0) >= 150
     },
     {
         id: "紅蓮を征す竜殺し",
         name: "紅蓮を征す竜殺し",
         condDesc: "エリア4 BOSS「インフェルノドレイク」を討伐する",
+        condition: "エリア4 BOSS「インフェルノドレイク」を討伐する",
         rewardStatPt: 10,
         buffDesc: "HP+120, ATK+25, MATK+25, STR+10, 火耐性+20%",
-        bonus: { hp: 120, atk: 25, matk: 25, str: 10, fire_res: 20 }
+        desc: "HP+120, ATK+25, MATK+25, STR+10, 火耐性+20%",
+        bonus: { hp: 120, atk: 25, matk: 25, str: 10, fire_res: 20 },
+        check: (p) => (p.compendium?.monsters?.["インフェルノドレイク"]?.defeatCount || 0) > 0
     },
     {
         id: "機神を超えし者",
         name: "機神を超えし者",
         condDesc: "エリア5 BOSS「大廃墟の管理者・オメガ」を討伐する",
+        condition: "エリア5 BOSS「大廃墟の管理者・オメガ」を討伐する",
         rewardStatPt: 12,
         buffDesc: "HP+160, MP+80, ATK+35, MATK+35, DEX+12, 命中+8%",
-        bonus: { hp: 160, mp: 80, atk: 35, matk: 35, dex: 12, hit: 8 }
+        desc: "HP+160, MP+80, ATK+35, MATK+35, DEX+12, 命中+8%",
+        bonus: { hp: 160, mp: 80, atk: 35, matk: 35, dex: 12, hit: 8 },
+        check: (p) => (p.compendium?.monsters?.["大廃墟の管理者・オメガ"]?.defeatCount || 0) > 0
     },
     {
         id: "天界の覇者",
         name: "天界の覇者",
         condDesc: "エリア6 BOSS「堕天王ルシファー」を討伐する",
+        condition: "エリア6 BOSS「堕天王ルシファー」を討伐する",
         rewardStatPt: 15,
         buffDesc: "全基礎ステ+15, HP+220, MP+120, ATK/MATK+45, 獲得EXP+15%",
-        bonus: { allStats: 15, hp: 220, mp: 120, atk: 45, matk: 45, expPct: 15 }
+        desc: "全基礎ステ+15, HP+220, MP+120, ATK/MATK+45, 獲得EXP+15%",
+        bonus: { allStats: 15, hp: 220, mp: 120, atk: 45, matk: 45, expPct: 15 },
+        check: (p) => (p.compendium?.monsters?.["堕天王ルシファー"]?.defeatCount || 0) > 0
     },
     {
         id: "星辰を翔ける竜王",
         name: "星辰を翔ける竜王",
         condDesc: "エリア7 BOSS「星竜コスモバハムート」を討伐する",
+        condition: "エリア7 BOSS「星竜コスモバハムート」を討伐する",
         rewardStatPt: 20,
         buffDesc: "全基礎ステ+22, HP+350, ATK/MATK+70, 会心率+10%, 泥率+25%",
-        bonus: { allStats: 22, hp: 350, atk: 70, matk: 70, critPct: 10, drop: 25 }
+        desc: "全基礎ステ+22, HP+350, ATK/MATK+70, 会心率+10%, 泥率+25%",
+        bonus: { allStats: 22, hp: 350, atk: 70, matk: 70, critPct: 10, drop: 25 },
+        check: (p) => (p.compendium?.monsters?.["星竜コスモバハムート"]?.defeatCount || 0) > 0
     },
     {
         id: "黄昏を超越せし神殺し",
         name: "黄昏を超越せし神殺し",
         condDesc: "エリア8 BOSS「最高神オーディン・オルタ」を討伐する",
+        condition: "エリア8 BOSS「最高神オーディン・オルタ」を討伐する",
         rewardStatPt: 30,
         buffDesc: "全基礎ステ+35, HP+550, MP+250, ATK/MATK+120, DEF/MDEF+80, 泥率+40%",
-        bonus: { allStats: 35, hp: 550, mp: 250, atk: 120, matk: 120, def: 80, mdef: 80, drop: 40 }
+        desc: "全基礎ステ+35, HP+550, MP+250, ATK/MATK+120, DEF/MDEF+80, 泥率+40%",
+        bonus: { allStats: 35, hp: 550, mp: 250, atk: 120, matk: 120, def: 80, mdef: 80, drop: 40 },
+        check: (p) => (p.compendium?.monsters?.["最高神オーディン・オルタ"]?.defeatCount || 0) > 0
     },
     {
         id: "ギルドの頼れる英雄",
         name: "ギルドの頼れる英雄",
         condDesc: "ギルド依頼を累計 15回 達成する",
+        condition: "ギルド依頼を累計 15回 達成する",
         rewardStatPt: 10,
         buffDesc: "全基礎ステ+12, 獲得EXP+15%, 交換屋納品Pt+20%, 泥率+20%",
-        bonus: { allStats: 12, expPct: 15, exPtPct: 20, drop: 20 }
+        desc: "全基礎ステ+12, 獲得EXP+15%, 交換屋納品Pt+20%, 泥率+20%",
+        bonus: { allStats: 12, expPct: 15, exPtPct: 20, drop: 20 },
+        check: (p) => (p.guild?.completedCount || 0) >= 15
     },
     {
         id: "博識なる大蒐集家",
         name: "博識なる大蒐集家",
         condDesc: "冒険者図鑑の総合コンプリート率 50% 以上を達成",
+        condition: "冒険者図鑑の総合コンプリート率 50% 以上を達成",
         rewardStatPt: 15,
         buffDesc: "全基礎ステ+18, LUC+20, ドロップ率+35%, 獲得EXP+15%",
-        bonus: { allStats: 18, luc: 20, drop: 35, expPct: 15 }
+        desc: "全基礎ステ+18, LUC+20, ドロップ率+35%, 獲得EXP+15%",
+        bonus: { allStats: 18, luc: 20, drop: 35, expPct: 15 },
+        check: () => (typeof calcCompendiumRate === "function" ? calcCompendiumRate() : 0) >= 50
     },
     {
         id: "森羅万象の生き字引",
         name: "森羅万象の生き字引",
         condDesc: "冒険者図鑑の総合コンプリート率 85% 以上を達成",
+        condition: "冒険者図鑑の総合コンプリート率 85% 以上を達成",
         rewardStatPt: 25,
         buffDesc: "全基礎ステ+30, LUC+35, ATK/MATK+80, ドロップ率+60%, 獲得EXP+25%",
-        bonus: { allStats: 30, luc: 35, atk: 80, matk: 80, drop: 60, expPct: 25 }
+        desc: "全基礎ステ+30, LUC+35, ATK/MATK+80, ドロップ率+60%, 獲得EXP+25%",
+        bonus: { allStats: 30, luc: 35, atk: 80, matk: 80, drop: 60, expPct: 25 },
+        check: () => (typeof calcCompendiumRate === "function" ? calcCompendiumRate() : 0) >= 85
     }
 ];

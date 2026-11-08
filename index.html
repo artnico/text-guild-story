@@ -137,6 +137,17 @@
         }
         .stat-btn:hover { background: #3fb950; }
 
+        /* 手動探索ボタン（高さ固定で戦闘切り替え時のガタつき防止） */
+        .manual-btn {
+            min-height: 52px;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.25;
+            text-align: center;
+        }
+
         /* 📱 スマホ専用レスポンシブスタイル (幅600px以下) */
         @media (max-width: 600px) {
             body { padding: 4px 2px; }
@@ -147,7 +158,7 @@
             .tab { padding: 7px 11px; font-size: 12px; }
             .sub-tab { padding: 6px 10px; font-size: 11px; }
             .log { height: 180px; font-size: 12px; padding: 8px; }
-            .manual-btn { min-width: 90px !important; font-size: 11px !important; padding: 6px 4px !important; }
+            .manual-btn { min-width: 90px !important; min-height: 48px !important; font-size: 11px !important; padding: 6px 3px !important; }
             .stat-columns { flex-direction: column !important; gap: 8px !important; }
             .job-spec-grid { grid-template-columns: 1fr !important; }
         }
@@ -192,13 +203,21 @@
                 </select>
             </div>
 
-            <!-- 冒険タブ内の簡易ステータス＆敵情報バー -->
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; font-size: 13px;">
-                <div>
-                    ❤️ HP: <b style="color: #88ff88;"><span id="dungeon-hp">100</span>/<span id="dungeon-max-hp">100</span></b>
-                    <span style="margin-left: 10px;">💧 MP: <b style="color: #88ccff;"><span id="dungeon-mp">20</span>/<span id="dungeon-max-mp">20</span></b></span>
+            <!-- 冒険タブ内の簡易ステータス＆敵情報バー（常時2行固定でスマホでもボタン位置のブレを完全防止！） -->
+            <div style="background: #222; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #383838; min-height: 54px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                    <div>
+                        ❤️ HP: <b style="color: #88ff88;"><span id="dungeon-hp">100</span>/<span id="dungeon-max-hp">100</span></b>
+                        <span style="margin-left: 8px;">💧 MP: <b style="color: #88ccff;"><span id="dungeon-mp">20</span>/<span id="dungeon-max-mp">20</span></b></span>
+                    </div>
+                    <div id="dungeon-battle-indicator" style="font-size: 11px; color: #88ff88; font-weight: bold;">🌲 探索中</div>
                 </div>
-                <div id="dungeon-enemy-status" style="color: #aaa;">周囲は安全</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; height: 20px; line-height: 20px;">
+                    <div id="dungeon-enemy-status" style="color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">🌲 周囲は安全（接敵なし）</div>
+                    <div id="dungeon-enemy-hpbar-wrap" style="display: none; width: 75px; height: 6px; background: #3a3a3a; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
+                        <div id="dungeon-enemy-hpbar" style="background: #e55353; height: 100%; width: 100%; transition: width 0.15s ease;"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- 🔥 連戦チェイン ＆ 🧪 修練バフインジケーター -->
