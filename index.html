@@ -519,7 +519,10 @@
                             </select>
                         </label>
                         <label style="cursor: pointer; user-select: none; color: #88ff88; font-weight: bold;">
-                            <input type="checkbox" id="craft-filter-craftable" onchange="updateCraftMenu()"> ✅ 今すぐ作れるものだけ表示
+                            <input type="checkbox" id="craft-filter-craftable" onchange="updateCraftMenu()"> ✅ 作成可能のみ
+                        </label>
+                        <label style="cursor: pointer; user-select: none; color: #00ffcc; font-weight: bold;">
+                            <input type="checkbox" id="craft-filter-uncreated" onchange="updateCraftMenu()"> 🆕 未作成のみ
                         </label>
                     </div>
                 </div>
@@ -678,10 +681,41 @@
                         </select>
                     </label>
                 </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
-                    <button onclick="bulkDonateMaterials('tier0')" style="width: auto; flex: 1; min-width: 150px; padding: 6px 8px; font-size: 12px; background: #5a3e28; margin-bottom: 0;">🧹 Tier0(粗悪)素材を一括納品</button>
-                    <button onclick="bulkDonateMaterials('surplus10')" style="width: auto; flex: 1; min-width: 150px; padding: 6px 8px; font-size: 12px; background: #2c5a3e; margin-bottom: 0;">📦 Tier1以下で10個超の余剰素材を一括納品</button>
-                    <button onclick="bulkDonateMaterials('equip_tier1')" style="width: auto; flex: 1; min-width: 150px; padding: 6px 8px; font-size: 12px; background: #3d2c5a; margin-bottom: 0;">🛡️ Tier1以下の未装備クラフト品を一括納品</button>
+                <!-- 一括納品コントロールパネル（クラフト装備品・素材の項目拡充） -->
+                <div style="background: #181f28; border: 1px solid #2d4560; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                    <div style="font-size: 12px; font-weight: bold; color: #79c0ff; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                        <span>🛡️ 未装備クラフト武具の一括納品（換金・整理）</span>
+                        <span style="font-size: 11px; font-weight: normal; color: #88ff88;">※現在装備中の武具は自動保護</span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                        <button onclick="bulkDonateMaterials('equip_tier1')" style="width: auto; flex: 1; min-width: 140px; padding: 6px 8px; font-size: 11px; background: #3d2c5a; margin-bottom: 0;" title="Tier1以下（ボロボロ〜普通）の未装備武具を一括納品">
+                            🛡️ Tier1以下(普通)を一括納品
+                        </button>
+                        <button onclick="bulkDonateMaterials('equip_tier2')" style="width: auto; flex: 1; min-width: 140px; padding: 6px 8px; font-size: 11px; background: #4a284a; margin-bottom: 0;" title="Tier2以下（良質まで）の未装備武具を一括納品">
+                            ✨ Tier2以下(良質まで)を一括納品
+                        </button>
+                        <button onclick="bulkDonateMaterials('equip_normal_unenhanced')" style="width: auto; flex: 1; min-width: 140px; padding: 6px 8px; font-size: 11px; background: #553311; margin-bottom: 0;" title="通常レシピ品で、強化値+0の未装備武具をすべて納品（レア・激レア・鍛錬強化品は自動保護）">
+                            ⚒️ +0未強化の通常装備を一括納品
+                        </button>
+                        <button onclick="bulkDonateMaterials('equip_all_safe')" style="width: auto; flex: 1; min-width: 140px; padding: 6px 8px; font-size: 11px; background: #7a2222; margin-bottom: 0;" title="鍛錬+1以上の強化品・激レアドロップ品を除き、未装備クラフト品をまとめて納品（確認あり）">
+                            🚨 未装備品を全納品 (強化品除く)
+                        </button>
+                    </div>
+
+                    <div style="font-size: 12px; font-weight: bold; color: #7ee787; margin-bottom: 6px;">
+                        🌿 余剰素材の一括納品
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button onclick="bulkDonateMaterials('tier0')" style="width: auto; flex: 1; min-width: 130px; padding: 6px 8px; font-size: 11px; background: #5a3e28; margin-bottom: 0;" title="粗悪修飾子（錆びた・湿った等）のついた素材をすべて納品">
+                            🧹 Tier0(粗悪)素材を一括納品
+                        </button>
+                        <button onclick="bulkDonateMaterials('surplus10')" style="width: auto; flex: 1; min-width: 130px; padding: 6px 8px; font-size: 11px; background: #2c5a3e; margin-bottom: 0;" title="Tier1以下の素材で、10個を超えて所持している余剰分を一括納品">
+                            📦 Tier1以下で10個超の余剰素材
+                        </button>
+                        <button onclick="bulkDonateMaterials('surplus20_all')" style="width: auto; flex: 1; min-width: 130px; padding: 6px 8px; font-size: 11px; background: #235555; margin-bottom: 0;" title="全素材中、20個を超えて所持している余剰分を一括納品（レア・激レア・手動限定素材は自動保護）">
+                            📦 20個超の余剰素材 (レア除く)
+                        </button>
+                    </div>
                 </div>
                 <div id="exchange-sell-list" style="display: grid; grid-template-columns: 1fr; gap: 6px; max-height: 460px; overflow-y: auto; padding-right: 4px;">
                     <!-- JSで描画 -->

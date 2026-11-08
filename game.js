@@ -2315,6 +2315,31 @@ function getMaterialSourceHint(matName) {
     return "ダンジョン探索 / 素材交換屋";
 }
 
+// レシピが作成済み（または図鑑登録・所持・装備中）か判定するヘルパー
+function isRecipeCrafted(recipe) {
+    if (!recipe) return false;
+    const eq = EQUIPMENT[recipe.result];
+    const targetName = eq ? eq.name : (recipe.name || recipe.result);
+    // 1. 図鑑の装備品登録チェック
+    if (player.compendium?.equipment && (player.compendium.equipment[targetName] || 0) > 0) return true;
+    // 2. 図鑑の素材・消費アイテム登録チェック
+    if (player.compendium?.materials && (player.compendium.materials[targetName] || 0) > 0) return true;
+    // 3. 装備中チェック
+    if (player.equipment) {
+        for (const slot in player.equipment) {
+            const item = player.equipment[slot];
+            if (item && item.includes(targetName)) return true;
+        }
+    }
+    // 4. 所持品インベントリチェック
+    if (player.inventory) {
+        for (const itemKey in player.inventory) {
+            if (itemKey.includes(targetName) && player.inventory[itemKey] > 0) return true;
+        }
+    }
+    return false;
+}
+
 function updateCraftMenu() {
     const listContainer = document.getElementById('craft-recipe-list');
     if (!listContainer) return;
@@ -2322,6 +2347,7 @@ function updateCraftMenu() {
     const areaFilter = document.getElementById('craft-filter-area')?.value || 'all';
     const originFilter = document.getElementById('craft-filter-origin')?.value || 'all';
     const onlyCraftable = document.getElementById('craft-filter-craftable')?.checked || false;
+    const onlyUncreated = document.getElementById('craft-filter-uncreated')?.checked || false;
 
     const skillLabelMap = {
         blacksmith: '🔨 鍛冶',
@@ -2355,6 +2381,10 @@ function updateCraftMenu() {
         const origin = recipe.origin || 'normal';
         if (originFilter !== 'all' && origin !== originFilter) continue;
 
+        // 作成済み判定
+        const isCrafted = isRecipeCrafted(recipe);
+        if (onlyUncreated && isCrafted) continue;
+
         // 所持素材数の集計と最大作成可能数の計算
         let maxCraft = 9999;
         let matPillsHtml = [];
@@ -2381,6 +2411,11 @@ function updateCraftMenu() {
 
         if (onlyCraftable && maxCraft === 0) continue;
         renderedCount++;
+
+        // 作成状況バッジ（未作成 / 作成済）
+        const craftedBadge = isCrafted
+            ? `<span style="background:#163320; border:1px solid #2ea043; color:#7ee787; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:bold;">✅ 作成済</span>`
+            : `<span style="background:#3d2408; border:1px solid #ffaa44; color:#ffaa44; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:bold;">🆕 未作成</span>`;
 
         // 起源バッジ（通常 / 🌟レア泥限定 / 🔍手動採取限定 / ⚖️交換屋限定 / 🌈激レア限定）
         let originBadge = `<span style="background:#333; color:#ccc; padding:2px 6px; border-radius:4px; font-size:11px;">📦 通常</span>`;
@@ -2435,6 +2470,7 @@ function updateCraftMenu() {
         leftDiv.innerHTML = `
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:4px;">
                 <span style="font-size:15px; font-weight:bold; color:#fff;">${recipe.name}</span>
+                ${craftedBadge}
                 <span style="background:#283038; color:${slotInfo.color}; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${slotInfo.label}</span>
                 ${originBadge}
                 <span style="background:#2b2b2b; color:#aaa; padding:2px 6px; border-radius:4px; font-size:11px;">${skillLabel}</span>
@@ -3102,75 +3138,139 @@ function donateMaterial(itemKey, amount) {
     if (typeof saveGame === "function") saveGame(false);
 }
 
-// 一括納品処理（'tier0': 粗悪素材すべて / 'surplus10': Tier1以下で10個超の余剰素材 / 'equip_tier1': Tier1以下の未装備クラフト武具）
+// 一括納品処理（クラフト武具・余剰素材の項目拡充版）
 function bulkDonateMaterials(mode) {
     let totalEarned = 0;
     let totalCount = 0;
     const jmEff = getCurrentJobMasteryEffects();
-    const exMult = 1.0 + (jmEff.exchangeBonus || 0) / 100;
+    const gRank = getCurrentGuildRank();
+    const rankBonusMult = gRank.exchangeBonus || (1.0 + (gRank.exPtBonus || 0) / 100);
+    const exMult = (1.0 + (jmEff.exchangeBonus || 0) / 100) * rankBonusMult;
+
+    // 現在装備中のアイテム名の集合を作成（装備中アイテムは絶対に保護）
+    const equippedItemNames = new Set();
+    if (player.equipment) {
+        for (const slot in player.equipment) {
+            const eqItem = player.equipment[slot];
+            if (eqItem) equippedItemNames.add(eqItem);
+        }
+    }
+
+    const targets = [];
 
     for (const [itemKey, count] of Object.entries({ ...player.inventory })) {
         if (count <= 0) continue;
         const slot = getItemSlot(itemKey);
-        if (slot === 'usable') continue; // 消費アイテムは除外
+        if (slot === 'usable') continue; // 料理・ポーション等の消費アイテムは保護
 
+        const isEquip = slot !== null;
         const pInfo = typeof getPrefixInfo === "function" ? getPrefixInfo(itemKey) : null;
-        const baseName = pInfo ? itemKey.substring(pInfo.prefix.length) : itemKey;
+        const parsed = typeof parseItemName === "function" ? parseItemName(itemKey) : { prefix: "", baseName: itemKey, plus: 0 };
+        const baseName = parsed.baseName;
+        const plus = parsed.plus || 0;
         const tier = pInfo ? pInfo.tier : 1;
 
-        if (mode === 'equip_tier1') {
-            if (slot === null) continue; // 素材は除外し、未装備の武具のみ対象
-            // 激レア装備・レア泥装備・交換限定アクセサリーはTier0でない限り保護
-            const isProtectedEquip = (typeof EXCHANGE_SHOP_ITEMS !== 'undefined' && EXCHANGE_SHOP_ITEMS.some(x => x.item === baseName))
-                || Object.values(RECIPES || {}).some(r => {
-                    const eq = EQUIPMENT[r.result];
-                    return ((eq && eq.name === baseName) || r.name === baseName) && (r.origin === 'rare' || r.origin === 'ultrarare');
-                });
-            if (isProtectedEquip && tier > 0) continue;
-            if (tier <= 1) {
-                const unitPt = getMaterialExchangeValue(itemKey);
-                totalEarned += Math.floor(unitPt * count * exMult);
-                totalCount += count;
-                delete player.inventory[itemKey];
-            }
-            continue;
-        }
+        // 激レア装備(0.2%〜0.5%)・交換限定アクセサリーかどうかの判定
+        const isUltraOrSpecial = (typeof EXCHANGE_SHOP_ITEMS !== 'undefined' && EXCHANGE_SHOP_ITEMS.some(x => x.item === baseName))
+            || Object.values(RECIPES || {}).some(r => {
+                const eq = EQUIPMENT[r.result];
+                return ((eq && eq.name === baseName) || r.name === baseName) && (r.origin === 'ultrarare');
+            });
 
-        // 'tier0' / 'surplus10' は素材のみ対象
-        if (slot !== null) continue;
-        const isProtectedRare = (typeof EXCHANGE_SHOP_ITEMS !== 'undefined' && EXCHANGE_SHOP_ITEMS.some(x => x.item === baseName))
-            || Object.values(areas).some(a => a.monsters.some(m => m.drops.some(d => d.item === baseName && (d.isRare || d.isUltraRare))) || (a.boss && a.boss.drops.some(d => d.item === baseName && (d.isRare || d.isUltraRare))) || (a.manualGather && a.manualGather.some(g => g.item === baseName)));
-        if (isProtectedRare && mode !== 'tier0') continue;
+        // レアドロップ装備かどうかの判定
+        const isRareEquip = Object.values(RECIPES || {}).some(r => {
+            const eq = EQUIPMENT[r.result];
+            return ((eq && eq.name === baseName) || r.name === baseName) && (r.origin === 'rare');
+        });
 
         let sellAmount = 0;
-        if (mode === 'tier0') {
+
+        // 🛡️ クラフト装備品の一括納品モード
+        if (mode === 'equip_tier1') {
+            // Tier1以下（ボロボロ〜普通）の未装備武具
+            if (!isEquip) continue;
+            if (isUltraOrSpecial && tier > 0) continue;
+            if (plus > 0) continue; // +1以上の鍛錬品は保護
+            if (tier <= 1) sellAmount = count;
+        } else if (mode === 'equip_tier2') {
+            // Tier2以下（良質まで）の未装備武具
+            if (!isEquip) continue;
+            if (isUltraOrSpecial) continue; // 激レア・交換アクセは保護
+            if (plus > 0) continue; // +1以上の鍛錬品は保護
+            if (tier <= 2) sellAmount = count;
+        } else if (mode === 'equip_normal_unenhanced') {
+            // 通常レシピ品で、強化値+0の未装備武具（レア泥・激レア・鍛錬強化品は自動保護）
+            if (!isEquip) continue;
+            if (isUltraOrSpecial || isRareEquip) continue;
+            if (plus > 0) continue;
+            sellAmount = count;
+        } else if (mode === 'equip_all_safe') {
+            // 未装備のクラフト武具を全納品（激レア・交換アクセ・鍛錬+1以上は保護）
+            if (!isEquip) continue;
+            if (isUltraOrSpecial) continue;
+            if (plus > 0) continue;
+            sellAmount = count;
+        }
+
+        // 🌿 余剰素材の一括納品モード
+        else if (mode === 'tier0') {
+            // Tier0(粗悪)素材
+            if (isEquip) continue;
             if (pInfo && pInfo.tier === 0) sellAmount = count;
         } else if (mode === 'surplus10') {
+            // Tier1以下の素材で、10個を超えて所持している余剰分
+            if (isEquip) continue;
             if (tier <= 1 && count > 10) {
                 sellAmount = count - 10;
+            }
+        } else if (mode === 'surplus20_all') {
+            // 通常素材で20個を超えて所持している余剰分（レア泥・激レア泥・手動採取限定素材は保護）
+            if (isEquip) continue;
+            const isProtectedRareMat = (typeof EXCHANGE_SHOP_ITEMS !== 'undefined' && EXCHANGE_SHOP_ITEMS.some(x => x.item === baseName))
+                || Object.values(areas).some(a => a.monsters.some(m => m.drops.some(d => d.item === baseName && (d.isRare || d.isUltraRare))) || (a.boss && a.boss.drops.some(d => d.item === baseName && (d.isRare || d.isUltraRare))) || (a.manualGather && a.manualGather.some(g => g.item === baseName)));
+            if (!isProtectedRareMat && count > 20) {
+                sellAmount = count - 20;
             }
         }
 
         if (sellAmount > 0) {
             const unitPt = getMaterialExchangeValue(itemKey);
-            totalEarned += Math.floor(unitPt * sellAmount * exMult);
+            const earned = Math.floor(unitPt * sellAmount * exMult);
+            targets.push({ itemKey, sellAmount, earned });
+            totalEarned += earned;
             totalCount += sellAmount;
-            player.inventory[itemKey] -= sellAmount;
-            if (player.inventory[itemKey] <= 0) delete player.inventory[itemKey];
         }
     }
 
-    if (totalCount > 0) {
-        player.exchangePoints = (player.exchangePoints || 0) + totalEarned;
-        const label = mode === 'equip_tier1' ? '未装備クラフト品' : '素材';
-        const bonusTag = exMult > 1.0 ? ` <span style="color:#00ffcc;">(職能特化ボーナス +${Math.round((exMult - 1) * 100)}%)</span>` : "";
-        addLog(`⚖️🧹 一括納品完了！ ${label}計 <b>${totalCount}個</b> を納品し、<b style="color:#ffd700;">+${totalEarned} Pt</b> を獲得した！${bonusTag}`);
-        calcStatus();
-        updateInventoryDisplay();
-        if (typeof saveGame === "function") saveGame(false);
-    } else {
+    if (totalCount === 0) {
         addLog(`<span style="color:#aaa;">⚖️ 一括納品の条件に該当するアイテムがありませんでした。</span>`);
+        return;
     }
+
+    // 全納品などの大きな操作時は確認ダイアログ
+    if (mode === 'equip_all_safe') {
+        const ok = confirm(`未装備のクラフト武具 計 ${totalCount} 個を一括納品して、+${totalEarned} Pt を獲得しますか？\n（※現在装備中の武具、鍛錬+1以上の強化品、激レア限定品は保護されます）`);
+        if (!ok) return;
+    }
+
+    // 実際の納品処理
+    for (const { itemKey, sellAmount } of targets) {
+        player.inventory[itemKey] -= sellAmount;
+        if (player.inventory[itemKey] <= 0) {
+            delete player.inventory[itemKey];
+        }
+    }
+
+    player.exchangePoints = (player.exchangePoints || 0) + totalEarned;
+    const isEquipMode = mode.startsWith('equip_');
+    const label = isEquipMode ? '未装備クラフト武具' : '余剰素材';
+    const bonusTag = exMult > 1.0 ? ` <span style="color:#00ffcc;">(ギルド・職能特化ボーナス +${Math.round((exMult - 1) * 100)}%)</span>` : "";
+    addLog(`⚖️🧹 <b style="color:#ffd700;">【一括納品完了！】</b> ${label} 計 <b>${totalCount}個</b> を納品し、<b style="color:#00ffcc;">+${totalEarned} Pt</b> を獲得した！${bonusTag}`);
+
+    calcStatus();
+    updateInventoryDisplay();
+    if (typeof updateExchangeUI === "function") updateExchangeUI();
+    if (typeof saveGame === "function") saveGame(false);
 }
 
 // 交換屋で景品（エリア限定特殊アクセサリー・ステージ別レア泥）を交換する
