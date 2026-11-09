@@ -481,8 +481,14 @@ function getSkillTotalLevel() {
 // 総合熟練度共鳴情報の算出
 function getSkillResonanceInfo() {
     const totalLevel = getSkillTotalLevel();
+    const defaultBonus = {
+        allStats: 0, hp: 0, mp: 0, expPct: 0, drop: 0,
+        skillExpPct: 0, critPct: 0, critDmg: 0, skillRate: 0,
+        allRes: 0, dmgCutPct: 0, dmgDealtPct: 0,
+        atk: 0, matk: 0, def: 0, mdef: 0, hit: 0, eva: 0
+    };
     if (typeof SKILL_RESONANCE_TIERS === 'undefined') {
-        return { totalLevel, currentTier: null, nextTier: null, bonus: {} };
+        return { totalLevel, currentTier: null, nextTier: null, bonus: defaultBonus };
     }
 
     let currentTier = null;
@@ -498,7 +504,7 @@ function getSkillResonanceInfo() {
         }
     }
 
-    const bonus = { ...(currentTier?.bonus || {}) };
+    const bonus = Object.assign({}, defaultBonus, currentTier?.bonus || {});
 
     // 2000超えのボーナス（50Lvごとに全ステ+10, HP+100, MP+50が無制限加算）
     if (totalLevel > 2000) {
@@ -1280,58 +1286,66 @@ function calcStatus() {
     const titleAllStats = tBonus.allStats || 0;
 
     // 基礎ステータスに装備＋図鑑コレクション＋ギルドランク＋二つ名＋共鳴＋ジョブ特化＋熟練度共鳴＋鍛錬固定値を加算
-    const totalAllStatBonus = compBonus.flatAllStats + rankAllStats + titleAllStats + resonance.allStats + mastery.allStats + skillResBonus.allStats + bonusAllStatFromRefining;
+    const totalAllStatBonus = (compBonus.flatAllStats || 0) + (rankAllStats || 0) + (titleAllStats || 0) + (resonance.allStats || 0) + (mastery.allStats || 0) + (skillResBonus.allStats || 0) + (bonusAllStatFromRefining || 0);
     const totalStrBonus = totalAllStatBonus + (tBonus.str || 0);
     const totalIntBonus = totalAllStatBonus + (tBonus.int || 0);
     const totalVitBonus = totalAllStatBonus + (tBonus.vit || 0);
     const totalDexBonus = totalAllStatBonus + (tBonus.dex || 0);
     const totalAgiBonus = totalAllStatBonus + (tBonus.agi || 0);
-    const totalLucBonus = totalAllStatBonus + compBonus.flatLucExtra + bonusLuc + (tBonus.luc || 0);
+    const totalLucBonus = totalAllStatBonus + (compBonus.flatLucExtra || 0) + (bonusLuc || 0) + (tBonus.luc || 0);
 
-    const totalStr = Math.floor((st.str + eq.str + totalStrBonus) * stMult.str);
-    const totalInt = Math.floor((st.int + eq.int + totalIntBonus) * stMult.int);
-    const totalVit = Math.floor((st.vit + eq.vit + totalVitBonus) * stMult.vit);
-    const totalDex = Math.floor((st.dex + eq.dex + totalDexBonus) * stMult.dex);
-    const totalAgi = Math.floor((st.agi + eq.agi + totalAgiBonus) * stMult.agi);
-    const totalLuc = Math.floor((st.luc + eq.luc + totalLucBonus) * stMult.luc);
+    const rawStr = Math.floor(((st.str || 10) + (eq.str || 0) + totalStrBonus) * (stMult.str || 1));
+    const rawInt = Math.floor(((st.int || 10) + (eq.int || 0) + totalIntBonus) * (stMult.int || 1));
+    const rawVit = Math.floor(((st.vit || 10) + (eq.vit || 0) + totalVitBonus) * (stMult.vit || 1));
+    const rawDex = Math.floor(((st.dex || 10) + (eq.dex || 0) + totalDexBonus) * (stMult.dex || 1));
+    const rawAgi = Math.floor(((st.agi || 10) + (eq.agi || 0) + totalAgiBonus) * (stMult.agi || 1));
+    const rawLuc = Math.floor(((st.luc || 10) + (eq.luc || 0) + totalLucBonus) * (stMult.luc || 1));
+
+    const totalStr = Math.max(1, isNaN(rawStr) ? 10 : rawStr);
+    const totalInt = Math.max(1, isNaN(rawInt) ? 10 : rawInt);
+    const totalVit = Math.max(1, isNaN(rawVit) ? 10 : rawVit);
+    const totalDex = Math.max(1, isNaN(rawDex) ? 10 : rawDex);
+    const totalAgi = Math.max(1, isNaN(rawAgi) ? 10 : rawAgi);
+    const totalLuc = Math.max(1, isNaN(rawLuc) ? 10 : rawLuc);
     
     const prevMaxHp = player.maxHp;
     const prevMaxMp = player.maxMp;
 
     // 仕様書⑥に基づく計算 ＋ 熟練度補正 ＋ 図鑑補正 ＋ ギルドランク ＋ 二つ名 ＋ マスターパッシブ ＋ 超越共鳴 ＋ 特化効果 ＋ 熟練度共鳴・マイルストーン
-    let baseMaxHp = Math.floor((100 + (totalVit * 10) + bonusHp + eq.hp + compBonus.flatHp + resonance.hp + mastery.flatHp + skillResBonus.hp + skMilestone.flatHp + (tBonus.hp || 0)) * stMult.hp);
+    let baseMaxHp = Math.floor((100 + (totalVit * 10) + (bonusHp || 0) + (eq.hp || 0) + (compBonus.flatHp || 0) + (resonance.hp || 0) + (mastery.flatHp || 0) + (skillResBonus.hp || 0) + (skMilestone.flatHp || 0) + (tBonus.hp || 0)) * (stMult.hp || 1));
     if (mastery.hpPct) baseMaxHp = Math.floor(baseMaxHp * (1 + mastery.hpPct / 100));
-    player.maxHp = Math.max(1, baseMaxHp);
+    player.maxHp = Math.max(1, isNaN(baseMaxHp) ? 100 : baseMaxHp);
 
-    let baseMaxMp = Math.floor((20 + (totalInt * 5) + bonusMp + eq.mp + compBonus.flatMp + resonance.mp + mastery.flatMp + skillResBonus.mp + skMilestone.flatMp + (tBonus.mp || 0)) * stMult.mp);
+    let baseMaxMp = Math.floor((20 + (totalInt * 5) + (bonusMp || 0) + (eq.mp || 0) + (compBonus.flatMp || 0) + (resonance.mp || 0) + (mastery.flatMp || 0) + (skillResBonus.mp || 0) + (skMilestone.flatMp || 0) + (tBonus.mp || 0)) * (stMult.mp || 1));
     if (mastery.mpPct) baseMaxMp = Math.floor(baseMaxMp * (1 + mastery.mpPct / 100));
-    player.maxMp = Math.max(1, baseMaxMp);
+    player.maxMp = Math.max(1, isNaN(baseMaxMp) ? 20 : baseMaxMp);
 
-    let baseAtk = Math.floor((10 + (totalStr * 2) + bonusAtk + eq.atk + compBonus.flatAtk + mastery.flatAtk + skillResBonus.atk + skMilestone.flatAtk + (tBonus.atk || 0)) * stMult.atk);
+    let baseAtk = Math.floor((10 + (totalStr * 2) + (bonusAtk || 0) + (eq.atk || 0) + (compBonus.flatAtk || 0) + (mastery.flatAtk || 0) + (skillResBonus.atk || 0) + (skMilestone.flatAtk || 0) + (tBonus.atk || 0)) * (stMult.atk || 1));
     if (mastery.atkPct) baseAtk = Math.floor(baseAtk * (1 + mastery.atkPct / 100));
-    player.atk = Math.max(0, baseAtk);
+    player.atk = Math.max(0, isNaN(baseAtk) ? 10 : baseAtk);
 
-    let baseMatk = Math.floor((5 + (totalInt * 2) + bonusMatk + eq.matk + compBonus.flatMatk + mastery.flatMatk + skillResBonus.matk + skMilestone.flatMatk + (tBonus.matk || 0)) * stMult.matk);
+    let baseMatk = Math.floor((5 + (totalInt * 2) + (bonusMatk || 0) + (eq.matk || 0) + (compBonus.flatMatk || 0) + (mastery.flatMatk || 0) + (skillResBonus.matk || 0) + (skMilestone.flatMatk || 0) + (tBonus.matk || 0)) * (stMult.matk || 1));
     if (mastery.matkPct) baseMatk = Math.floor(baseMatk * (1 + mastery.matkPct / 100));
-    player.matk = Math.max(0, baseMatk);
+    player.matk = Math.max(0, isNaN(baseMatk) ? 5 : baseMatk);
 
-    let baseDef = (totalVit * 1) + bonusDef + eq.def + compBonus.flatDef + mastery.flatDef + skillResBonus.def + skMilestone.flatDef + (tBonus.def || 0);
+    let baseDef = (totalVit * 1) + (bonusDef || 0) + (eq.def || 0) + (compBonus.flatDef || 0) + (mastery.flatDef || 0) + (skillResBonus.def || 0) + (skMilestone.flatDef || 0) + (tBonus.def || 0);
     if (mastery.defPct) baseDef = Math.floor(baseDef * (1 + mastery.defPct / 100));
     if (skMilestone.defPct) baseDef = Math.floor(baseDef * (1 + skMilestone.defPct / 100));
-    player.def = Math.max(0, baseDef);
+    player.def = Math.max(0, isNaN(baseDef) ? 5 : baseDef);
 
-    let baseMdef = (totalInt * 1) + bonusMdef + eq.mdef + compBonus.flatMdef + mastery.flatMdef + skillResBonus.mdef + skMilestone.flatMdef + (tBonus.mdef || 0);
+    let baseMdef = (totalInt * 1) + (bonusMdef || 0) + (eq.mdef || 0) + (compBonus.flatMdef || 0) + (mastery.flatMdef || 0) + (skillResBonus.mdef || 0) + (skMilestone.flatMdef || 0) + (tBonus.mdef || 0);
     if (mastery.mdefPct) baseMdef = Math.floor(baseMdef * (1 + mastery.mdefPct / 100));
     if (skMilestone.mdefPct) baseMdef = Math.floor(baseMdef * (1 + skMilestone.mdefPct / 100));
-    player.mdef = Math.max(0, baseMdef);
+    player.mdef = Math.max(0, isNaN(baseMdef) ? 5 : baseMdef);
     
-    player.hitRate = Math.floor((90 + (totalDex * 0.5) + bonusHit + eq.hit + stFlat.hit + compBonus.flatHit + resonance.hit + mastery.hit + skillResBonus.hit + skMilestone.hitRate + (tBonus.hit || 0)) * 10) / 10;
-    if (player.hitRate > 100) player.hitRate = 100;
+    let calcHit = Math.floor((90 + (totalDex * 0.5) + (bonusHit || 0) + (eq.hit || 0) + (stFlat.hit || 0) + (compBonus.flatHit || 0) + (resonance.hit || 0) + (mastery.hit || 0) + (skillResBonus.hit || 0) + (skMilestone.hitRate || 0) + (tBonus.hit || 0)) * 10) / 10;
+    player.hitRate = isNaN(calcHit) ? 95 : Math.min(100, Math.max(10, calcHit));
     
-    player.evasionRate = Math.floor(((totalAgi * 0.5) + bonusEva + eq.eva + stFlat.eva + compBonus.flatEva + resonance.eva + mastery.eva + skillResBonus.eva + skMilestone.evaRate + (tBonus.eva || 0)) * 10) / 10;
-    if (player.evasionRate > 50) player.evasionRate = 50;
+    let calcEva = Math.floor(((totalAgi * 0.5) + (bonusEva || 0) + (eq.eva || 0) + (stFlat.eva || 0) + (compBonus.flatEva || 0) + (resonance.eva || 0) + (mastery.eva || 0) + (skillResBonus.eva || 0) + (skMilestone.evaRate || 0) + (tBonus.eva || 0)) * 10) / 10;
+    player.evasionRate = isNaN(calcEva) ? 10 : Math.min(50, Math.max(0, calcEva));
     
-    player.dropRateBonus = 100 + (totalLuc * 1) + bonusDrop + eq.drop + stFlat.drop + compBonus.flatDrop + resonance.drop + mastery.drop + skillResBonus.drop + skMilestone.dropRate + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
+    let calcDrop = 100 + (totalLuc * 1) + (bonusDrop || 0) + (eq.drop || 0) + (stFlat.drop || 0) + (compBonus.flatDrop || 0) + (resonance.drop || 0) + (mastery.drop || 0) + (skillResBonus.drop || 0) + (skMilestone.dropRate || 0) + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
+    player.dropRateBonus = isNaN(calcDrop) ? 100 : Math.max(100, calcDrop);
 
     // --- ジョブ特性の適用（最上級職・隠しジョブ全10種含む） ---
     if (player.job === "竜騎士" && player.equipment.weapon && (player.equipment.weapon.includes("ランス") || player.equipment.weapon.includes("槍"))) {
@@ -1458,14 +1472,20 @@ function calcStatus() {
         player.mdef = Math.floor(player.mdef * 1.12);
     }
 
-    // 現在HP/MPの調整と初期化
-    if (player.maxHp > prevMaxHp && prevMaxHp > 0) player.hp += (player.maxHp - prevMaxHp);
-    if (player.hp > player.maxHp) player.hp = player.maxHp;
-    if (player.maxHp > 0 && player.hp === 0 && !prevMaxHp) player.hp = player.maxHp; 
+    // 現在HP/MPの調整とNaN・不正値救済
+    if (isNaN(player.hp) || player.hp === undefined || player.hp === null || (player.hp <= 0 && !prevMaxHp)) {
+        player.hp = player.maxHp;
+    } else {
+        if (player.maxHp > prevMaxHp && prevMaxHp > 0) player.hp += (player.maxHp - prevMaxHp);
+        if (player.hp > player.maxHp) player.hp = player.maxHp;
+    }
 
-    if (player.maxMp > prevMaxMp && prevMaxMp > 0) player.mp += (player.maxMp - prevMaxMp);
-    if (player.mp > player.maxMp) player.mp = player.maxMp;
-    if (player.maxMp > 0 && player.mp === 0 && !prevMaxMp) player.mp = player.maxMp; 
+    if (isNaN(player.mp) || player.mp === undefined || player.mp === null || (player.mp <= 0 && !prevMaxMp)) {
+        player.mp = player.maxMp;
+    } else {
+        if (player.maxMp > prevMaxMp && prevMaxMp > 0) player.mp += (player.maxMp - prevMaxMp);
+        if (player.mp > player.maxMp) player.mp = player.maxMp;
+    } 
 
     // UI更新
     document.getElementById('stat-str').innerText = st.str;
@@ -4401,8 +4421,8 @@ function applySavePayload(data, isManual = false) {
     checkSecretSkills();
     checkAchievements();
     calcStatus();
-    player.hp = sp.hp ? Math.min(player.maxHp, sp.hp) : player.maxHp;
-    player.mp = sp.mp ? Math.min(player.maxMp, sp.mp) : player.maxMp;
+    player.hp = (typeof sp.hp === 'number' && !isNaN(sp.hp) && sp.hp > 0) ? Math.min(player.maxHp, sp.hp) : player.maxHp;
+    player.mp = (typeof sp.mp === 'number' && !isNaN(sp.mp) && sp.mp > 0) ? Math.min(player.maxMp, sp.mp) : player.maxMp;
     calcStatus();
     updateInventoryDisplay();
     updateGuildQuestUI();
@@ -5312,7 +5332,7 @@ function nextStep(mode = 'auto') {
             if (wasBoss) saveGame(false); // ボス撃破時に自動セーブ
         };
 
-        let dmgToEnemy = player.atk;
+        let dmgToEnemy = Math.max(1, isNaN(player.atk) ? 10 : player.atk);
         let triggeredSkill = null;
         // 強行突破（強襲攻撃）時は獲得熟練度1.5倍
         const skillExpMult = mode === 'rush' ? 1.5 : 1.0;
@@ -5336,9 +5356,11 @@ function nextStep(mode = 'auto') {
         }
 
         // 命中判定 (集中・急所狙い時は命中+15%＋探索Lvボーナス、百歩穿楊発動時はさらに命中+50%)
-        const focusHitBonus = mode === 'focus' ? (15 + Math.floor(player.skills.search.level / 2)) : 0;
+        const focusHitBonus = mode === 'focus' ? (15 + Math.floor((player.skills?.search?.level || 1) / 2)) : 0;
         const snipeHitBonus = (triggeredSkill && triggeredSkill.name === "百歩穿楊") ? 50 : 0;
-        const hitChance = player.hitRate + focusHitBonus + snipeHitBonus - (enemy.eva || 0);
+        const baseHit = isNaN(player.hitRate) ? 95 : player.hitRate;
+        const rawHitChance = baseHit + focusHitBonus + snipeHitBonus - (enemy.eva || 0);
+        const hitChance = Math.max(5, Math.min(100, isNaN(rawHitChance) ? 95 : rawHitChance));
         if (Math.random() * 100 <= hitChance) {
             const isMagicAttack = (triggeredSkill && triggeredSkill.useMatk) || (!triggeredSkill && weaponType === 'magic');
 
@@ -5447,6 +5469,7 @@ function nextStep(mode = 'auto') {
             if (jmEff.dmgBonus > 0) {
                 dmgToEnemy = Math.floor(dmgToEnemy * (1 + jmEff.dmgBonus / 100));
             }
+            if (isNaN(dmgToEnemy) || dmgToEnemy < 1) dmgToEnemy = 1;
 
             const modeBadge = mode === 'rush' ? `<span style="color:#ff6666; font-weight:bold;">[💥強襲]</span> ` : (mode === 'focus' ? `<span style="color:#88ff88; font-weight:bold;">[🎯急所]</span> ` : '');
             const katanaBadge = katanaOugiTriggered ? `<span style="color:#ffd700; font-weight:bold;">[🗡️一刀両断]</span> ` : '';
@@ -5516,11 +5539,13 @@ function nextStep(mode = 'auto') {
         }
         
         // 回避判定
-        let evaded = Math.random() * 100 <= player.evasionRate;
+        const baseEva = isNaN(player.evasionRate) ? 10 : player.evasionRate;
+        const evaChance = Math.max(0, Math.min(80, baseEva));
+        let evaded = Math.random() * 100 <= evaChance;
         if (evaded) {
             addLog(`🍃 ${enemy.name} の反撃！ しかし華麗に回避した！`);
             gainSkillExp('evasion', Math.ceil(1 * skillExpMult));
-        } else if (player.skills.evasion.level >= 100 && enemy && !enemy.utsusemiUsed) {
+        } else if (player.skills?.evasion?.level >= 100 && enemy && !enemy.utsusemiUsed) {
             // 回避Lv.100奥義『空蝉の術』: 1戦闘1回だけ回避失敗時にも身代わり木片で完全無効化！
             enemy.utsusemiUsed = true;
             addLog(`🍃🪵 <b style="color:#00ffcc;">【回避奥義・空蝉の術（1戦闘1回）】</b> 身代わりの木片を残し、敵の反撃を完全に無効化した！`);
@@ -5530,8 +5555,9 @@ function nextStep(mode = 'auto') {
             const hasShield = player.equipment.subWeapon && (player.equipment.subWeapon.includes('盾') || player.equipment.subWeapon.includes('シールド'));
 
             // 盾術Lv.50奥義『パリィ反撃』: 盾装備時、15%の確率で被ダメ0＆敵にDEF×1.5のパリィ反撃ダメージ！
-            if (hasShield && player.skills.shield.level >= 50 && Math.random() < 0.15) {
-                const parryDmg = Math.max(1, Math.floor(player.def * 1.5));
+            if (hasShield && player.skills?.shield?.level >= 50 && Math.random() < 0.15) {
+                const safeDef = Math.max(0, isNaN(player.def) ? 10 : player.def);
+                const parryDmg = Math.max(1, Math.floor(safeDef * 1.5));
                 enemy.hp -= parryDmg;
                 addLog(`🛡️💥 <b style="color:#ffd700;">【盾術奥義・パリィ反撃！】</b> 完璧なタイミングで反撃を弾き返し、被ダメージを無効化！ <b>${enemy.name}</b> に <b>${parryDmg}</b> の反撃ダメージ！`);
                 gainSkillExp('shield', Math.ceil(3 * skillExpMult));
@@ -5544,12 +5570,15 @@ function nextStep(mode = 'auto') {
             }
 
             // 防御力(DEF)とMDEFによる被ダメージ軽減（割合＋固定値のハイブリッド軽減）
-            const defReductionRatio = 100 / (100 + player.def + Math.floor(player.mdef * 0.5));
-            let dmgToPlayer = Math.max(1, Math.floor((enemy.atk - Math.floor(player.def * 0.2)) * defReductionRatio));
+            const safeDef = Math.max(0, isNaN(player.def) ? 5 : player.def);
+            const safeMdef = Math.max(0, isNaN(player.mdef) ? 5 : player.mdef);
+            const enemyAtk = Math.max(1, isNaN(enemy.atk) ? 10 : enemy.atk);
+            const defReductionRatio = 100 / (100 + safeDef + Math.floor(safeMdef * 0.5));
+            let dmgToPlayer = Math.max(1, Math.floor((enemyAtk - Math.floor(safeDef * 0.2)) * defReductionRatio));
             
             // 盾装備時は盾術熟練度に応じてさらに割合カット
             if (hasShield) {
-                const shieldCut = Math.min(0.5, (player.skills.shield.level - 1) * 0.01);
+                const shieldCut = Math.min(0.5, ((player.skills?.shield?.level || 1) - 1) * 0.01);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - shieldCut)));
             }
 
@@ -5558,16 +5587,16 @@ function nextStep(mode = 'auto') {
             if (currentAreaId === "area4") {
                 const eqStats = player.equipment.body ? getItemStats(player.equipment.body) : { fire_res: 0 };
                 const subStats = player.equipment.subWeapon ? getItemStats(player.equipment.subWeapon) : { fire_res: 0 };
-                const fireResPct = Math.min(80, ((player.skills.fireRes.level - 1) * 1 + (eqStats.fire_res || 0) + (subStats.fire_res || 0)) * resMultiplier);
+                const fireResPct = Math.min(80, (((player.skills?.fireRes?.level || 1) - 1) * 1 + (eqStats.fire_res || 0) + (subStats.fire_res || 0)) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - fireResPct / 100)));
             } else if (currentAreaId === "area3" || currentAreaId === "area6") {
-                const waterResPct = Math.min(80, ((player.skills.waterRes.level - 1) * 1) * resMultiplier);
+                const waterResPct = Math.min(80, (((player.skills?.waterRes?.level || 1) - 1) * 1) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - waterResPct / 100)));
             } else if (currentAreaId === "area5" || currentAreaId === "area7") {
-                const windResPct = Math.min(80, ((player.skills.windRes.level - 1) * 1) * resMultiplier);
+                const windResPct = Math.min(80, (((player.skills?.windRes?.level || 1) - 1) * 1) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - windResPct / 100)));
             } else if (currentAreaId === "area2" || currentAreaId === "area8") {
-                const earthResPct = Math.min(80, ((player.skills.earthRes.level - 1) * 1) * resMultiplier);
+                const earthResPct = Math.min(80, (((player.skills?.earthRes?.level || 1) - 1) * 1) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - earthResPct / 100)));
             }
             
@@ -5591,11 +5620,13 @@ function nextStep(mode = 'auto') {
             }
 
             // 生存Lv.50『背水の陣』: HP30%以下のピンチ時に被ダメ20%軽減
-            if (player.hp <= player.maxHp * 0.30 && player.skills.survival.level >= 50) {
+            if (player.hp <= player.maxHp * 0.30 && (player.skills?.survival?.level || 1) >= 50) {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * 0.80));
             }
             
-            player.hp -= dmgToPlayer; addLog(`💥 ${enemy.name} の反撃！ <b>${dmgToPlayer}</b> のダメージを受けた！`);
+            if (isNaN(dmgToPlayer) || dmgToPlayer < 1) dmgToPlayer = 1;
+            player.hp = Math.max(0, (isNaN(player.hp) ? player.maxHp : player.hp) - dmgToPlayer);
+            addLog(`💥 ${enemy.name} の反撃！ <b>${dmgToPlayer}</b> のダメージを受けた！`);
             
             // 被弾時の熟練度獲得（回避、盾術、耐性、生存熟練度）
             gainSkillExp('evasion', 0.5 * skillExpMult);
