@@ -18,23 +18,29 @@ const player = {
     skills: {
         unarmed: { level: 1, exp: 0, next: 10 },
         sword: { level: 1, exp: 0, next: 10 },
+        katana: { level: 1, exp: 0, next: 10 }, // ⚔️ 刀術熟練度
         magic: { level: 1, exp: 0, next: 10 },
         sewing: { level: 1, exp: 0, next: 10 },
         blacksmith: { level: 1, exp: 0, next: 10 },
         handicraft: { level: 1, exp: 0, next: 10 },
+        refining: { level: 1, exp: 0, next: 10 }, // ⚒️ 鍛錬熟練度
+        cooking: { level: 1, exp: 0, next: 10 },
+        trading: { level: 1, exp: 0, next: 10 },  // ⚖️ 交易熟練度
         spear: { level: 1, exp: 0, next: 10 },
         axe: { level: 1, exp: 0, next: 10 },
         bow: { level: 1, exp: 0, next: 10 },
         gun: { level: 1, exp: 0, next: 10 },
         shield: { level: 1, exp: 0, next: 10 },
         evasion: { level: 1, exp: 0, next: 10 },
+        survival: { level: 1, exp: 0, next: 10 }, // ❤️‍🩹 生存熟練度
         fireRes: { level: 1, exp: 0, next: 10 },
         waterRes: { level: 1, exp: 0, next: 10 },
+        windRes: { level: 1, exp: 0, next: 10 },  // 🛡️🌪️ 風耐性熟練度
+        earthRes: { level: 1, exp: 0, next: 10 }, // 🛡️🪨 地耐性熟練度
         fireMagic: { level: 1, exp: 0, next: 10 },
         waterMagic: { level: 1, exp: 0, next: 10 },
         windMagic: { level: 1, exp: 0, next: 10 },
         earthMagic: { level: 1, exp: 0, next: 10 },
-        cooking: { level: 1, exp: 0, next: 10 },
         // 探索・行動熟練度（手動3種＋採取＋行軍）
         careful: { level: 1, exp: 0, next: 10 },
         rush: { level: 1, exp: 0, next: 10 },
@@ -233,6 +239,7 @@ function getItemStats(itemName) {
 function getEquippedWeaponType(weaponNameOverride = null) {
     const wName = weaponNameOverride || player.equipment.weapon;
     if (!wName) return 'unarmed';
+    if (wName.includes('刀') || wName.includes('カタナ') || wName.includes('太刀') || wName.includes('銘刀') || wName.includes('村正') || wName.includes('斬鉄') || wName.includes('小太刀') || wName.includes('居合') || wName.includes('国綱') || wName.includes('正宗') || wName.includes('虎徹')) return 'katana';
     if (wName.includes('槍') || wName.includes('ランス') || wName.includes('スピア') || wName.includes('ロンギヌス') || wName.includes('ハルバード') || wName.includes('ヴァルキュリア') || wName.includes('グングニル')) return 'spear';
     if (wName.includes('斧') || wName.includes('アクス')) return 'axe';
     if (wName.includes('弓') || wName.includes('ボウ')) return 'bow';
@@ -432,6 +439,274 @@ function getMaxPassiveSkillSlots() {
 function getPlayerTitle(titleId) {
     if (!titleId || typeof PLAYER_TITLES === "undefined") return null;
     return PLAYER_TITLES.find(t => t.id === titleId) || null;
+}
+
+// --- 🌟 全30種スキル熟練度 ＆ マイルストーン奥義 ＆ 総合共鳴システム ---
+const DEFAULT_SKILL_KEYS = [
+    'unarmed', 'sword', 'katana', 'magic', 'sewing', 'blacksmith', 'handicraft', 'refining', 'cooking', 'trading',
+    'spear', 'axe', 'bow', 'gun', 'shield', 'evasion', 'survival', 'fireRes', 'waterRes', 'windRes', 'earthRes',
+    'fireMagic', 'waterMagic', 'windMagic', 'earthMagic', 'careful', 'rush', 'search', 'gathering', 'autoWalk'
+];
+
+function ensureSkillsStructure() {
+    if (!player.skills) player.skills = {};
+    for (const key of DEFAULT_SKILL_KEYS) {
+        if (!player.skills[key]) {
+            player.skills[key] = { level: 1, exp: 0, next: 10 };
+        } else {
+            if (typeof player.skills[key].level !== 'number') player.skills[key].level = 1;
+            if (typeof player.skills[key].exp !== 'number') player.skills[key].exp = 0;
+            if (typeof player.skills[key].next !== 'number') player.skills[key].next = 10;
+        }
+    }
+}
+
+// 全スキルの合計熟練度レベルを計算
+function getSkillTotalLevel() {
+    ensureSkillsStructure();
+    let total = 0;
+    for (const key of DEFAULT_SKILL_KEYS) {
+        total += (player.skills[key]?.level || 1);
+    }
+    return total;
+}
+
+// 総合熟練度共鳴情報の算出
+function getSkillResonanceInfo() {
+    const totalLevel = getSkillTotalLevel();
+    if (typeof SKILL_RESONANCE_TIERS === 'undefined') {
+        return { totalLevel, currentTier: null, nextTier: null, bonus: {} };
+    }
+
+    let currentTier = null;
+    let nextTier = null;
+
+    for (let i = 0; i < SKILL_RESONANCE_TIERS.length; i++) {
+        const tier = SKILL_RESONANCE_TIERS[i];
+        if (totalLevel >= tier.reqTotal) {
+            currentTier = tier;
+        } else {
+            nextTier = tier;
+            break;
+        }
+    }
+
+    const bonus = { ...(currentTier?.bonus || {}) };
+
+    // 2000超えのボーナス（50Lvごとに全ステ+10, HP+100, MP+50が無制限加算）
+    if (totalLevel > 2000) {
+        const extraRanks = Math.floor((totalLevel - 2000) / 50);
+        bonus.allStats = (bonus.allStats || 0) + extraRanks * 10;
+        bonus.hp = (bonus.hp || 0) + extraRanks * 100;
+        bonus.mp = (bonus.mp || 0) + extraRanks * 50;
+    }
+
+    return { totalLevel, currentTier, nextTier, bonus };
+}
+
+// 到達している全マイルストーン奥義アビリティの累積効果を集計
+function getSkillMilestoneEffects() {
+    ensureSkillsStructure();
+    const eff = {
+        atkPct: 0, matkPct: 0, defPct: 0, mdefPct: 0,
+        flatAtk: 0, flatMatk: 0, flatDef: 0, flatMdef: 0,
+        flatHp: 0, flatMp: 0,
+        critRate: 0, critDmg: 0, hitRate: 0, evaRate: 0,
+        dropRate: 0, skillRate: 0, mpCostCut: 0,
+        defPierce: 0, hpRegenPct: 0, mpRegenPct: 0,
+        dmgCutPct: 0,
+        unlockedCount: 0,
+        abilities: [] // 解放済みアビリティ一覧
+    };
+
+    if (typeof SKILL_MASTER_DATA === 'undefined') return eff;
+
+    for (const [skillKey, sData] of Object.entries(SKILL_MASTER_DATA)) {
+        const pSkill = player.skills[skillKey];
+        if (!pSkill) continue;
+        const curLv = pSkill.level || 1;
+
+        for (const m of sData.milestones) {
+            if (curLv >= m.level) {
+                eff.unlockedCount++;
+                eff.abilities.push({ skillKey, skillName: sData.name, ...m });
+
+                // 各マイルストーンのステータス補正を蓄積
+                // 剣術
+                if (m.name === "鋭刃の呼吸") eff.flatAtk += 12;
+                if (m.name === "剣閃の構え") { eff.critRate += 4; eff.atkPct += 6; }
+                if (m.name === "剛剣の極致") { eff.critRate += 6; eff.critDmg += 0.25; }
+                // 刀術
+                if (m.name === "刃筋の調律") eff.critRate += 3;
+                if (m.name === "居合の構え") eff.critDmg += 0.25;
+                // 槍術
+                if (m.name === "長柄の間合い") { eff.flatAtk += 10; eff.hitRate += 3; }
+                if (m.name === "竜穿の切っ先") { eff.defPierce += 12; eff.atkPct += 6; }
+                if (m.name === "穿孔螺旋撃") { eff.defPierce += 25; eff.hitRate += 8; }
+                // 斧術
+                if (m.name === "重撃の破壊力") eff.flatAtk += 15;
+                if (m.name === "剛力粉砕") eff.atkPct += 10;
+                // 弓術
+                if (m.name === "射手の集中") eff.hitRate += 5;
+                if (m.name === "鷹の眼") eff.hitRate += 8;
+                // 銃術
+                if (m.name === "高精度バレル") { eff.critDmg += 0.35; eff.hitRate += 8; }
+                // 素手
+                if (m.name === "拳気の目覚め") { eff.flatAtk += 15; eff.flatDef += 5; }
+                if (m.name === "剛体練成") { eff.flatHp += 80; eff.flatDef += 15; }
+                // 魔法
+                if (m.name === "魔導の脈動") { eff.flatMatk += 15; eff.flatMp += 30; }
+                if (m.name === "詠唱加速") eff.skillRate += 6;
+                if (m.name === "マインドフロー") eff.mpCostCut += 25;
+                // 盾術
+                if (m.name === "重盾の構え") { eff.flatDef += 15; eff.flatHp += 60; }
+                if (m.name === "シールドブロック") eff.defPct += 10;
+                // 回避
+                if (m.name === "身軽な足捌き") eff.evaRate += 3;
+                // 生存
+                if (m.name === "タフガイ") eff.flatHp += 80;
+                if (m.name === "応急手当の心得") eff.hpRegenPct += 3;
+                if (m.name === "不死鳥の魂") { eff.hpRegenPct += 5; eff.mpRegenPct += 3; }
+                // 探索・行動
+                if (m.name === "観察眼") eff.dropRate += 8;
+                if (m.name === "神の千里眼") eff.dropRate += 40;
+                if (m.name === "豪商の交渉術") eff.dropRate += 8;
+                if (m.name === "黄金の嗅覚") eff.dropRate += 15;
+                // クラフト
+                if (m.name === "極上の一皿") eff.flatHp += 50;
+            }
+        }
+    }
+
+    return eff;
+}
+
+// 🌌 総合熟練度共鳴インジケーターUIの更新
+function updateSkillResonanceUI() {
+    const barEl = document.getElementById('skill-resonance-bar');
+    if (!barEl) return;
+    const res = getSkillResonanceInfo();
+    const cur = res.currentTier;
+    const next = res.nextTier;
+    const totalLv = res.totalLevel;
+
+    let progressPct = 100;
+    let nextText = "";
+    if (next) {
+        const prevReq = cur.reqLevel;
+        const span = next.reqLevel - prevReq;
+        const progress = Math.max(0, totalLv - prevReq);
+        progressPct = Math.min(100, Math.floor((progress / span) * 100));
+        nextText = `次の共鳴【<b>${next.name}</b>】まで あと <b style="color:#00ffcc;">${next.reqLevel - totalLv}</b> レベル (Lv.${next.reqLevel})`;
+    } else {
+        nextText = `<span style="color:#ffd700; font-weight:bold;">👑 全共鳴ランクの頂点に到達！ 極限の境地！</span>`;
+    }
+
+    const b = cur.bonus;
+    const bonusSummary = [];
+    if (b.allStats) bonusSummary.push(`全ステ+${b.allStats}`);
+    if (b.hp) bonusSummary.push(`HP+${b.hp}`);
+    if (b.mp) bonusSummary.push(`MP+${b.mp}`);
+    if (b.atk) bonusSummary.push(`攻防+${b.atk}`);
+    if (b.hit) bonusSummary.push(`命中+${b.hit}%`);
+    if (b.eva) bonusSummary.push(`回避+${b.eva}%`);
+    if (b.crit) bonusSummary.push(`会心+${b.crit}%`);
+    if (b.drop) bonusSummary.push(`泥率+${b.drop}%`);
+
+    barEl.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px;">
+            <div>
+                <span style="color: #aaa;">全30種 合計熟練度:</span> 
+                <b style="font-size: 14px; color: #fff;">Lv.${totalLv}</b>
+                <span style="color: #667788; font-size: 11px;">/ 3000</span>
+            </div>
+            <div>
+                <span style="color: #aaa;">共鳴ランク:</span> 
+                <b style="color: #ffd700; font-size: 13px;">🌌 ${cur.name}</b>
+            </div>
+        </div>
+        <div style="background: #0d131a; border-radius: 4px; height: 10px; width: 100%; overflow: hidden; margin-bottom: 6px; border: 1px solid #334455;">
+            <div style="background: linear-gradient(90deg, #00b4d8, #00ffcc, #ffd700); height: 100%; width: ${progressPct}%; transition: width 0.3s ease;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 11px; color: #88ff88;">
+            <span>✨ 恒久共鳴ボーナス: <b>${bonusSummary.join(' / ')}</b></span>
+            <span style="color: #aaa;">${nextText}</span>
+        </div>
+    `;
+}
+
+// ✨ 熟練度マイルストーン＆奥義モーダルの表示・非表示切替
+function toggleMilestonesModal() {
+    const modal = document.getElementById('milestones-modal');
+    if (!modal) return;
+    if (modal.style.display === "none" || modal.style.display === "") {
+        modal.style.display = "block";
+        renderMilestonesModalList();
+    } else {
+        modal.style.display = "none";
+    }
+}
+
+// マイルストーン＆奥義カードリストの動的描画
+function renderMilestonesModalList() {
+    const listEl = document.getElementById('milestones-modal-list');
+    if (!listEl) return;
+    ensureSkillsStructure();
+
+    let html = "";
+    for (const skillKey of DEFAULT_SKILL_KEYS) {
+        const sData = player.skills[skillKey] || { level: 1 };
+        const master = (typeof SKILL_MASTER_DATA !== "undefined") ? SKILL_MASTER_DATA[skillKey] : null;
+        if (!master) continue;
+
+        const milestones = master.milestones || [];
+        const isMaxed = sData.level >= 100;
+        const skillName = master.name;
+        const icon = master.icon || '⚔️';
+
+        html += `
+            <div style="background: #1c2331; border: 1px solid ${isMaxed ? '#ffd700' : '#3d485d'}; border-radius: 6px; padding: 8px 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div>
+                        <span style="font-size: 14px;">${icon}</span> 
+                        <b style="color: #fff; font-size: 13px;">${skillName}</b> 
+                        <span style="font-size: 11px; color: #aaa;">(${master.category})</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 12px; color: ${isMaxed ? '#ffd700' : '#00ffcc'}; font-weight: bold;">Lv.${sData.level}</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px;">
+        `;
+
+        for (const m of milestones) {
+            const isUnlocked = sData.level >= m.level;
+            const borderColor = isUnlocked ? (m.level === 100 ? '#ffd700' : '#28a745') : '#444';
+            const bgColor = isUnlocked ? (m.level === 100 ? '#2a2408' : '#142918') : '#15181e';
+            const titleColor = isUnlocked ? (m.level === 100 ? '#ffd700' : '#88ff88') : '#777';
+            const descColor = isUnlocked ? '#eee' : '#666';
+            const badge = isUnlocked ? `<span style="color:#88ff88; font-weight:bold;">[解放済]</span>` : `<span style="color:#888;">[未達: Lv.${m.level}]</span>`;
+
+            html += `
+                <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 4px; padding: 5px 8px; font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <b style="color: ${titleColor};">Lv.${m.level} 『${m.name}』</b>
+                        ${badge}
+                    </div>
+                    <div style="color: ${descColor}; line-height: 1.3;">
+                        ${m.desc}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    listEl.innerHTML = html;
 }
 
 // --- 👑 ジョブ超越マスタリー＆特化育成ヘルパー関数 ---
@@ -833,14 +1108,16 @@ function updateChainAndBuffUI() {
 
 // 2. ステータス計算
 function calcStatus() {
+    ensureSkillsStructure();
     const sk = player.skills;
-    // 全24種のスキル熟練度からの固定ステータスボーナス集計（すべての行動がキャラ強化に直結！）
+    // 全30種のスキル熟練度からの固定ステータスボーナス集計（すべての行動がキャラ強化に直結！）
     const bonusHp = (sk.magic.level - 1) * 5
         + (sk.shield.level - 1) * 10
-        + ((sk.fireRes.level - 1) + (sk.waterRes.level - 1)) * 5
+        + ((sk.fireRes.level - 1) + (sk.waterRes.level - 1) + (sk.windRes.level - 1) + (sk.earthRes.level - 1)) * 5
         + (sk.careful.level - 1) * 8
         + (sk.autoWalk.level - 1) * 5
-        + (sk.cooking.level - 1) * 10;
+        + (sk.cooking.level - 1) * 10
+        + (sk.survival.level - 1) * 12;
 
     const bonusMp = (sk.magic.level - 1) * 5
         + ((sk.fireMagic.level - 1) + (sk.waterMagic.level - 1) + (sk.windMagic.level - 1) + (sk.earthMagic.level - 1)) * 3
@@ -848,9 +1125,11 @@ function calcStatus() {
         + (sk.cooking.level - 1) * 5;
 
     const bonusAtk = ((sk.unarmed.level - 1) + (sk.sword.level - 1) + (sk.spear.level - 1) + (sk.bow.level - 1) + (sk.gun.level - 1)) * 2
+        + (sk.katana.level - 1) * 3
         + (sk.axe.level - 1) * 3
         + (sk.rush.level - 1) * 3
-        + (sk.blacksmith.level - 1) * 2;
+        + (sk.blacksmith.level - 1) * 2
+        + (sk.refining.level - 1) * 2;
 
     const bonusMatk = (sk.magic.level - 1) * 2
         + ((sk.fireMagic.level - 1) + (sk.waterMagic.level - 1) + (sk.windMagic.level - 1) + (sk.earthMagic.level - 1)) * 2
@@ -859,15 +1138,20 @@ function calcStatus() {
     const bonusDef = (sk.shield.level - 1) * 2
         + (sk.unarmed.level - 1) * 1
         + (sk.careful.level - 1) * 2
-        + (sk.blacksmith.level - 1) * 2;
+        + (sk.blacksmith.level - 1) * 2
+        + (sk.refining.level - 1) * 2
+        + (sk.earthRes.level - 1) * 2
+        + (sk.survival.level - 1) * 1;
 
-    const bonusMdef = ((sk.fireRes.level - 1) + (sk.waterRes.level - 1) + (sk.magic.level - 1)) * 1
+    const bonusMdef = ((sk.fireRes.level - 1) + (sk.waterRes.level - 1) + (sk.windRes.level - 1) + (sk.earthRes.level - 1) + (sk.magic.level - 1)) * 1
         + (sk.careful.level - 1) * 2
         + (sk.sewing.level - 1) * 2;
 
     const bonusHit = (sk.bow.level - 1) * 0.5 + (sk.gun.level - 1) * 0.5 + (sk.search.level - 1) * 0.5;
-    const bonusEva = (sk.evasion.level - 1) * 0.5 + (sk.autoWalk.level - 1) * 0.3;
-    const bonusDrop = (sk.search.level - 1) * 2 + (sk.handicraft.level - 1) * 2;
+    const bonusEva = (sk.evasion.level - 1) * 0.5 + (sk.autoWalk.level - 1) * 0.3 + (sk.windRes.level - 1) * 0.2;
+    const bonusDrop = (sk.search.level - 1) * 2 + (sk.handicraft.level - 1) * 2 + (sk.trading.level - 1) * 2;
+    const bonusLuc = (sk.trading.level - 1) * 1;
+    const bonusAllStatFromRefining = Math.floor((sk.refining.level - 1) * 0.5);
     
     let eq = { hp: 0, mp: 0, atk: 0, matk: 0, def: 0, mdef: 0, hit: 0, eva: 0, drop: 0, str: 0, int: 0, vit: 0, dex: 0, agi: 0, luc: 0, fire_res: 0, crit: 0 };
     
@@ -933,6 +1217,13 @@ function calcStatus() {
     // 👑 現在ジョブの超越特化アビリティ効果（案A）
     const mastery = getCurrentJobMasteryEffects();
 
+    // 🌌 総合熟練度共鳴ボーナス
+    const skillResInfo = getSkillResonanceInfo();
+    const skillResBonus = skillResInfo.bonus;
+
+    // ✨ 熟練度マイルストーン奥義の累積効果
+    const skMilestone = getSkillMilestoneEffects();
+
     // ジョブ特化ステータス倍率の乗算
     stMult.str *= (1 + (mastery.strPct || 0) / 100);
     stMult.int *= (1 + (mastery.intPct || 0) / 100);
@@ -940,6 +1231,10 @@ function calcStatus() {
     stMult.dex *= (1 + (mastery.dexPct || 0) / 100);
     stMult.agi *= (1 + (mastery.agiPct || 0) / 100);
     stMult.luc *= (1 + (mastery.lucPct || 0) / 100);
+
+    // マイルストーン奥義による乗算補正
+    if (skMilestone.atkPct) stMult.atk *= (1 + skMilestone.atkPct / 100);
+    if (skMilestone.matkPct) stMult.matk *= (1 + skMilestone.matkPct / 100);
 
     // 📜 ギルドランク恒久ボーナス
     const guildRank = getCurrentGuildRank();
@@ -951,14 +1246,14 @@ function calcStatus() {
     const tBonus = titleObj?.bonus || {};
     const titleAllStats = tBonus.allStats || 0;
 
-    // 基礎ステータスに装備＋図鑑コレクション＋ギルドランク＋二つ名＋共鳴＋ジョブ特化固定値を加算
-    const totalAllStatBonus = compBonus.flatAllStats + rankAllStats + titleAllStats + resonance.allStats + mastery.allStats;
+    // 基礎ステータスに装備＋図鑑コレクション＋ギルドランク＋二つ名＋共鳴＋ジョブ特化＋熟練度共鳴＋鍛錬固定値を加算
+    const totalAllStatBonus = compBonus.flatAllStats + rankAllStats + titleAllStats + resonance.allStats + mastery.allStats + skillResBonus.allStats + bonusAllStatFromRefining;
     const totalStrBonus = totalAllStatBonus + (tBonus.str || 0);
     const totalIntBonus = totalAllStatBonus + (tBonus.int || 0);
     const totalVitBonus = totalAllStatBonus + (tBonus.vit || 0);
     const totalDexBonus = totalAllStatBonus + (tBonus.dex || 0);
     const totalAgiBonus = totalAllStatBonus + (tBonus.agi || 0);
-    const totalLucBonus = totalAllStatBonus + compBonus.flatLucExtra + (tBonus.luc || 0);
+    const totalLucBonus = totalAllStatBonus + compBonus.flatLucExtra + bonusLuc + (tBonus.luc || 0);
 
     const totalStr = Math.floor((st.str + eq.str + totalStrBonus) * stMult.str);
     const totalInt = Math.floor((st.int + eq.int + totalIntBonus) * stMult.int);
@@ -970,38 +1265,40 @@ function calcStatus() {
     const prevMaxHp = player.maxHp;
     const prevMaxMp = player.maxMp;
 
-    // 仕様書⑥に基づく計算 ＋ 熟練度補正 ＋ 図鑑補正 ＋ ギルドランク ＋ 二つ名 ＋ マスターパッシブ ＋ 超越共鳴 ＋ 特化効果
-    let baseMaxHp = Math.floor((100 + (totalVit * 10) + bonusHp + eq.hp + compBonus.flatHp + resonance.hp + mastery.flatHp + (tBonus.hp || 0)) * stMult.hp);
+    // 仕様書⑥に基づく計算 ＋ 熟練度補正 ＋ 図鑑補正 ＋ ギルドランク ＋ 二つ名 ＋ マスターパッシブ ＋ 超越共鳴 ＋ 特化効果 ＋ 熟練度共鳴・マイルストーン
+    let baseMaxHp = Math.floor((100 + (totalVit * 10) + bonusHp + eq.hp + compBonus.flatHp + resonance.hp + mastery.flatHp + skillResBonus.hp + skMilestone.flatHp + (tBonus.hp || 0)) * stMult.hp);
     if (mastery.hpPct) baseMaxHp = Math.floor(baseMaxHp * (1 + mastery.hpPct / 100));
     player.maxHp = Math.max(1, baseMaxHp);
 
-    let baseMaxMp = Math.floor((20 + (totalInt * 5) + bonusMp + eq.mp + compBonus.flatMp + resonance.mp + mastery.flatMp + (tBonus.mp || 0)) * stMult.mp);
+    let baseMaxMp = Math.floor((20 + (totalInt * 5) + bonusMp + eq.mp + compBonus.flatMp + resonance.mp + mastery.flatMp + skillResBonus.mp + skMilestone.flatMp + (tBonus.mp || 0)) * stMult.mp);
     if (mastery.mpPct) baseMaxMp = Math.floor(baseMaxMp * (1 + mastery.mpPct / 100));
     player.maxMp = Math.max(1, baseMaxMp);
 
-    let baseAtk = Math.floor((10 + (totalStr * 2) + bonusAtk + eq.atk + compBonus.flatAtk + mastery.flatAtk + (tBonus.atk || 0)) * stMult.atk);
+    let baseAtk = Math.floor((10 + (totalStr * 2) + bonusAtk + eq.atk + compBonus.flatAtk + mastery.flatAtk + skillResBonus.atk + skMilestone.flatAtk + (tBonus.atk || 0)) * stMult.atk);
     if (mastery.atkPct) baseAtk = Math.floor(baseAtk * (1 + mastery.atkPct / 100));
     player.atk = Math.max(0, baseAtk);
 
-    let baseMatk = Math.floor((5 + (totalInt * 2) + bonusMatk + eq.matk + compBonus.flatMatk + mastery.flatMatk + (tBonus.matk || 0)) * stMult.matk);
+    let baseMatk = Math.floor((5 + (totalInt * 2) + bonusMatk + eq.matk + compBonus.flatMatk + mastery.flatMatk + skillResBonus.matk + skMilestone.flatMatk + (tBonus.matk || 0)) * stMult.matk);
     if (mastery.matkPct) baseMatk = Math.floor(baseMatk * (1 + mastery.matkPct / 100));
     player.matk = Math.max(0, baseMatk);
 
-    let baseDef = (totalVit * 1) + bonusDef + eq.def + compBonus.flatDef + mastery.flatDef + (tBonus.def || 0);
+    let baseDef = (totalVit * 1) + bonusDef + eq.def + compBonus.flatDef + mastery.flatDef + skillResBonus.def + skMilestone.flatDef + (tBonus.def || 0);
     if (mastery.defPct) baseDef = Math.floor(baseDef * (1 + mastery.defPct / 100));
+    if (skMilestone.defPct) baseDef = Math.floor(baseDef * (1 + skMilestone.defPct / 100));
     player.def = Math.max(0, baseDef);
 
-    let baseMdef = (totalInt * 1) + bonusMdef + eq.mdef + compBonus.flatMdef + mastery.flatMdef + (tBonus.mdef || 0);
+    let baseMdef = (totalInt * 1) + bonusMdef + eq.mdef + compBonus.flatMdef + mastery.flatMdef + skillResBonus.mdef + skMilestone.flatMdef + (tBonus.mdef || 0);
     if (mastery.mdefPct) baseMdef = Math.floor(baseMdef * (1 + mastery.mdefPct / 100));
+    if (skMilestone.mdefPct) baseMdef = Math.floor(baseMdef * (1 + skMilestone.mdefPct / 100));
     player.mdef = Math.max(0, baseMdef);
     
-    player.hitRate = Math.floor((90 + (totalDex * 0.5) + bonusHit + eq.hit + stFlat.hit + compBonus.flatHit + resonance.hit + mastery.hit + (tBonus.hit || 0)) * 10) / 10;
+    player.hitRate = Math.floor((90 + (totalDex * 0.5) + bonusHit + eq.hit + stFlat.hit + compBonus.flatHit + resonance.hit + mastery.hit + skillResBonus.hit + skMilestone.hitRate + (tBonus.hit || 0)) * 10) / 10;
     if (player.hitRate > 100) player.hitRate = 100;
     
-    player.evasionRate = Math.floor(((totalAgi * 0.5) + bonusEva + eq.eva + stFlat.eva + compBonus.flatEva + resonance.eva + mastery.eva + (tBonus.eva || 0)) * 10) / 10;
+    player.evasionRate = Math.floor(((totalAgi * 0.5) + bonusEva + eq.eva + stFlat.eva + compBonus.flatEva + resonance.eva + mastery.eva + skillResBonus.eva + skMilestone.evaRate + (tBonus.eva || 0)) * 10) / 10;
     if (player.evasionRate > 50) player.evasionRate = 50;
     
-    player.dropRateBonus = 100 + (totalLuc * 1) + bonusDrop + eq.drop + stFlat.drop + compBonus.flatDrop + resonance.drop + mastery.drop + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
+    player.dropRateBonus = 100 + (totalLuc * 1) + bonusDrop + eq.drop + stFlat.drop + compBonus.flatDrop + resonance.drop + mastery.drop + skillResBonus.drop + skMilestone.dropRate + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
 
     // --- ジョブ特性の適用（最上級職・隠しジョブ全10種含む） ---
     if (player.job === "竜騎士" && player.equipment.weapon && (player.equipment.weapon.includes("ランス") || player.equipment.weapon.includes("槍"))) {
@@ -1233,6 +1530,7 @@ function calcStatus() {
     if (typeof updateChainAndBuffUI === "function") updateChainAndBuffUI(); // 🔥 連戦チェイン＆修練バフUI
     updateSecretDiscoveryDisplay(); // 🕵️ 隠し要素図鑑の更新
     if (typeof updateCompendiumUI === "function") updateCompendiumUI(); // 📖 冒険者図鑑の更新
+    if (typeof updateSkillResonanceUI === "function") updateSkillResonanceUI(); // 🌌 総合熟練度共鳴UIの更新
     updateDungeonStatusUI(); // 冒険タブの簡易ステータス・ボタン表示更新
 }
 
@@ -1789,6 +2087,7 @@ function unequipItem(slot) {
 
 // 3. スキル・クラフト
 function gainSkillExp(type, amount) {
+    ensureSkillsStructure();
     const jobBonus = player.job === "深淵の踏破者" ? 1.5 : 1.0;
     const haloBonus = hasEquippedSpecial("seraph_halo") ? 1.20 : 1.0;
     
@@ -1801,7 +2100,7 @@ function gainSkillExp(type, amount) {
     // 装備称号（修羅の、探究の 等）の熟練度ボーナス
     const eqPfx = getEquippedPrefixExpBonuses();
     let prefixSkillBonus = 1.0;
-    const weaponSkills = ['sword', 'spear', 'axe', 'bow', 'gun', 'unarmed'];
+    const weaponSkills = ['sword', 'katana', 'spear', 'axe', 'bow', 'gun', 'unarmed'];
     const actionSkills = ['careful', 'rush', 'search', 'gathering', 'autoWalk'];
     if (weaponSkills.includes(type)) {
         prefixSkillBonus += (eqPfx.weaponBonus || 0);
@@ -1816,24 +2115,57 @@ function gainSkillExp(type, amount) {
     amount = Math.round(amount * expMultiplier * jobBonus * haloBonus * chainMult * trainingMult * prefixSkillBonus * masteryBonus * 10) / 10;
     const skill = player.skills[type];
     if (!skill) return;
+
+    const prevResInfo = getSkillResonanceInfo();
+    let leveledUp = false;
+
     skill.exp = Math.round((skill.exp + amount) * 10) / 10;
     while (skill.exp >= skill.next) {
+        leveledUp = true;
         skill.level++;
         skill.exp = Math.max(0, Math.round((skill.exp - skill.next) * 10) / 10);
         skill.next = Math.floor(skill.next * 1.5);
         const skillNameMap = {
             unarmed: '素手',
-            sword: '剣術', magic: '魔法', sewing: '裁縫',
-            blacksmith: '鍛冶', handicraft: '工作',
+            sword: '剣術', katana: '刀術', magic: '魔法', sewing: '裁縫',
+            blacksmith: '鍛冶', handicraft: '工作', refining: '鍛錬', cooking: '調理', trading: '交易',
             spear: '槍術', axe: '斧術', bow: '弓術', gun: '銃術',
-            shield: '盾術', evasion: '回避', fireRes: '火耐性', waterRes: '水耐性', cooking: '調理',
+            shield: '盾術', evasion: '回避', survival: '生存', fireRes: '火耐性', waterRes: '水耐性', windRes: '風耐性', earthRes: '地耐性',
             fireMagic: '火魔法', waterMagic: '水魔法', windMagic: '風魔法', earthMagic: '地魔法',
             careful: '警戒', rush: '強行', search: '探索', gathering: '採取', autoWalk: '行軍'
         };
         const skillName = skillNameMap[type] || type;
         addLog(`<span style="color: #ffff00; font-weight: bold;">🆙 【${skillName}熟練度】が Lv.${skill.level} に上がった！</span>`);
+
+        // ✨ マイルストーン奥義解放チェック
+        if (typeof SKILL_MASTER_DATA !== "undefined" && SKILL_MASTER_DATA[type]) {
+            const msList = SKILL_MASTER_DATA[type].milestones || [];
+            for (const m of msList) {
+                if (m.level === skill.level) {
+                    addLog(`✨ <b style="color: #ffd700; background: #2a1e35; padding: 2px 8px; border-radius: 4px; border: 1px solid #9c27b0;">【マイルストーン奥義解放！】</b> 【${skillName}】が Lv.${skill.level} に到達！ 秘技<b>『${m.name}』</b>(${m.desc})を習得した！`);
+                }
+            }
+        }
+
         checkSecretSkills();
     }
+
+    if (leveledUp) {
+        // 🌌 総合共鳴ランク昇格チェック
+        const newResInfo = getSkillResonanceInfo();
+        if (newResInfo.currentTier.name !== prevResInfo.currentTier.name) {
+            const b = newResInfo.currentTier.bonus;
+            const bStr = [];
+            if (b.allStats) bStr.push(`全ステ+${b.allStats}`);
+            if (b.hp) bStr.push(`HP+${b.hp}`);
+            if (b.mp) bStr.push(`MP+${b.mp}`);
+            if (b.atk) bStr.push(`攻防+${b.atk}`);
+            if (b.crit) bStr.push(`会心+${b.crit}%`);
+            if (b.drop) bStr.push(`泥率+${b.drop}%`);
+            addLog(`🌌🎉 <b style="color: #00ffcc; background: #002b3d; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc;">【総合熟練度共鳴 昇格！】</b> 全30種熟練度の合計が <b>Lv.${newResInfo.totalLevel}</b> に到達！ 共鳴ランク【<b style="color:#ffd700;">${newResInfo.currentTier.name}</b>】に覚醒した！（恒久補正: ${bStr.join(' / ')}）`);
+        }
+    }
+
     calcStatus();
 }
 
@@ -2634,6 +2966,9 @@ function craftItem(recipeId) {
         }
         addLog(`🔨 素材を消費して ${msgParts.join(", ")} を製作した！`);
         gainSkillExp(recipe.category, expGained);
+        if (recipe.category === 'blacksmith' || recipe.category === 'handicraft' || recipe.category === 'sewing') {
+            gainSkillExp('refining', Math.max(1, Math.floor(expGained * 0.5)));
+        }
         
         // 1個作成で、かつ消費アイテム(usable)でない装備品なら自動装備
         const firstItem = Object.keys(craftedItems)[0];
@@ -2941,6 +3276,7 @@ function executeEnhance() {
 
     addLog(`⚒️✨ <b style="color:#ffd700;">【鍛錬成功！】</b> <span style="color:#fff;">[${rawItemName}]</span> を <span style="color:#00ffcc; font-weight:bold;">[${newItemName}]</span> に強化した！（基礎ステ+5%UP＆マイルストーン強化！）`);
     gainSkillExp('blacksmith', 10);
+    gainSkillExp('refining', 15);
     recordItemToCompendium(newItemName);
 
     calcStatus();
@@ -3006,6 +3342,7 @@ function executeReforge() {
 
     addLog(`✨🔮 <b style="color:#ff66ff;">【称号継承完了！】</b> [${sourceItem}] から称号を移植し、<span style="color:#00ffcc; font-weight:bold;">[${newItemName}]</span> を再刻印した！`);
     gainSkillExp('handicraft', 10);
+    gainSkillExp('refining', 20);
     recordItemToCompendium(newItemName);
 
     calcStatus();
@@ -3133,6 +3470,7 @@ function donateMaterial(itemKey, amount) {
     const typeTag = isEquip ? "🛡️クラフト武具" : "🌿素材";
     const bonusTag = exMult > 1.0 ? ` (特化+${Math.round((exMult - 1) * 100)}%)` : "";
     addLog(`⚖️ ${typeTag} <span style="color:${col};">[${itemKey}]</span>×<b>${sellCount}</b> を交換屋に納品し、<b style="color:#ffd700;">+${earnedPt} Pt</b> (単価:${unitPt}Pt${bonusTag}) を獲得した！`);
+    gainSkillExp('trading', Math.max(1, Math.floor(earnedPt / 4)));
     calcStatus();
     updateInventoryDisplay();
     if (typeof saveGame === "function") saveGame(false);
@@ -3266,6 +3604,7 @@ function bulkDonateMaterials(mode) {
     const label = isEquipMode ? '未装備クラフト武具' : '余剰素材';
     const bonusTag = exMult > 1.0 ? ` <span style="color:#00ffcc;">(ギルド・職能特化ボーナス +${Math.round((exMult - 1) * 100)}%)</span>` : "";
     addLog(`⚖️🧹 <b style="color:#ffd700;">【一括納品完了！】</b> ${label} 計 <b>${totalCount}個</b> を納品し、<b style="color:#00ffcc;">+${totalEarned} Pt</b> を獲得した！${bonusTag}`);
+    gainSkillExp('trading', Math.max(2, Math.floor(totalEarned / 4)));
 
     calcStatus();
     updateInventoryDisplay();
@@ -3300,6 +3639,7 @@ function exchangeShopBuy(shopId) {
     recordItemToCompendium(finalItemName, 1);
     const badge = entry.isEquipment ? "💍限定装飾品" : "🌟希少素材";
     addLog(`⚖️🎁 交換Ptを <b>${entry.ptCost}Pt</b> 消費し、${badge} <span style="color:#00ffcc; font-weight:bold;">[${finalItemName}]</span> を交換した！`);
+    gainSkillExp('trading', Math.max(5, Math.floor(entry.ptCost / 8)));
 
     // アクセサリーで空き枠があれば自動装備
     if (entry.isEquipment && (!player.equipment.acc1 || !player.equipment.acc2 || !player.equipment.acc3)) {
@@ -3544,6 +3884,7 @@ function claimGuildQuest(questIndex) {
     player.exchangePoints = (player.exchangePoints || 0) + q.reward.exchangePt;
     player.statPoints += q.reward.statPt;
     gainExp(q.reward.exp);
+    gainSkillExp('trading', 10);
 
     addLog(`📜🎉 <b style="color:#ffd700;">【ギルド依頼達成！】</b> 『${q.title}』を達成！ 獲得: <b style="color:#00ffcc;">+${q.reward.gp} GP</b> / <b style="color:#ffd700;">+${q.reward.exchangePt} Pt</b> / <b style="color:#88ff88;">+${q.reward.exp} EXP</b> / <b>ステPt +${q.reward.statPt}</b>！`);
 
@@ -3979,6 +4320,7 @@ function applySavePayload(data, isManual = false) {
             }
         }
     }
+    ensureSkillsStructure();
     player.unlockedSkills = Array.isArray(sp.unlockedSkills) ? sp.unlockedSkills : [];
     player.activeSkills = Array.isArray(sp.activeSkills) ? sp.activeSkills.filter(s => ACTIVE_SKILLS[s]) : [];
     player.passiveSkills = Array.isArray(sp.passiveSkills) ? sp.passiveSkills.filter(s => PASSIVE_SKILLS[s]) : [];
@@ -4151,6 +4493,7 @@ function resetSaveData() {
     player.jobLevels = { "冒険者": { level: 1, exp: 0, nextExp: 100, isMaster: false } };
     player.stats = { str: 10, int: 10, vit: 10, dex: 10, agi: 10, luc: 10 };
     for (const slot in player.equipment) player.equipment[slot] = null;
+    ensureSkillsStructure();
     for (const sKey in player.skills) player.skills[sKey] = { level: 1, exp: 0, next: 10 };
     player.unlockedSkills = [];
     player.activeSkills = [];
@@ -5030,7 +5373,8 @@ function nextStep(mode = 'auto') {
                 dmgToEnemy += (player.skills.gun.level - 1) * 2;
             }
 
-            // パッシブ・隠しジョブ・秘技・職能特化の効果：クリティカル発生判定
+            // パッシブ・隠しジョブ・秘技・職能特化・熟練度奥義の効果：クリティカル発生判定
+            const skEffCombat = getSkillMilestoneEffects();
             let isCritical = false;
             let critRate = (player.passiveSkills.includes("オーバークロック") ? 0.25 : 0.05)
                 + (player.passiveSkills.includes("心眼") ? 0.10 : 0)
@@ -5039,10 +5383,13 @@ function nextStep(mode = 'auto') {
                 + (player.job === "万象の覇王" ? 0.20 : 0)
                 + (triggeredSkill && triggeredSkill.name === "百歩穿楊" ? 0.30 : 0)
                 + (weaponType === 'sword' ? (player.skills.sword.level - 1) * 0.005 : 0)
+                + (weaponType === 'katana' ? (player.skills.katana.level - 1) * 0.003 : 0)
                 + (mode === 'focus' ? 0.15 : 0)
-                + ((jmEff.critRate || 0) / 100);
+                + ((jmEff.critRate || 0) / 100)
+                + ((skEffCombat.critRate || 0) / 100);
             if (hasEquippedSpecial("cosmic_ring")) critRate += 0.15; // 星竜のコズミックリング
 
+            let katanaOugiTriggered = false;
             if (Math.random() < critRate) {
                 isCritical = true;
                 if (!player.statsTrack) player.statsTrack = { totalSteps: 0, totalKills: 0, bossKills: 0, craftCount: 0, totalCrits: 0 };
@@ -5054,6 +5401,13 @@ function nextStep(mode = 'auto') {
                 if (player.job === "刀神") critMult += 0.3;
                 if (hasEquippedSpecial("cosmic_ring")) critMult += 0.5; // 星竜のコズミックリング: 会心倍率+0.5
                 critMult += ((jmEff.critDmg || 0) / 100);
+                critMult += ((skEffCombat.critDmg || 0) / 100);
+
+                // 刀術Lv.100奥義『神速抜刀 一刀両断』: 刀装備クリティカル時に倍率+0.60
+                if (weaponType === 'katana' && player.skills.katana.level >= 100) {
+                    critMult += 0.60;
+                    katanaOugiTriggered = true;
+                }
                 dmgToEnemy = Math.floor(dmgToEnemy * critMult);
             }
 
@@ -5066,13 +5420,14 @@ function nextStep(mode = 'auto') {
             }
 
             const modeBadge = mode === 'rush' ? `<span style="color:#ff6666; font-weight:bold;">[💥強襲]</span> ` : (mode === 'focus' ? `<span style="color:#88ff88; font-weight:bold;">[🎯急所]</span> ` : '');
+            const katanaBadge = katanaOugiTriggered ? `<span style="color:#ffd700; font-weight:bold;">[🗡️一刀両断]</span> ` : '';
             if (triggeredSkill) {
-                let msg = modeBadge + triggeredSkill.logMessage.replace("{damage}", dmgToEnemy);
+                let msg = modeBadge + katanaBadge + triggeredSkill.logMessage.replace("{damage}", dmgToEnemy);
                 if (isCritical) msg = `<span style="color: #ffaa00; font-weight: bold;">⚡ CRITICAL!!</span> ` + msg;
                 addLog(msg);
                 for (const type in triggeredSkill.expBonus) { gainSkillExp(type, Math.ceil(triggeredSkill.expBonus[type] * skillExpMult)); }
             } else {
-                let msg = `${modeBadge}⚔️ あなたの攻撃！ 敵に <b>${dmgToEnemy}</b> のダメージ！`;
+                let msg = `${modeBadge}${katanaBadge}⚔️ あなたの攻撃！ 敵に <b>${dmgToEnemy}</b> のダメージ！`;
                 if (isCritical) msg = `<span style="color: #ffaa00; font-weight: bold;">⚡ CRITICAL!!</span> ` + msg;
                 addLog(msg);
                 gainSkillExp(weaponType, Math.ceil(2 * skillExpMult));
@@ -5132,16 +5487,38 @@ function nextStep(mode = 'auto') {
         }
         
         // 回避判定
-        if (Math.random() * 100 <= player.evasionRate) {
+        let evaded = Math.random() * 100 <= player.evasionRate;
+        if (evaded) {
             addLog(`🍃 ${enemy.name} の反撃！ しかし華麗に回避した！`);
             gainSkillExp('evasion', Math.ceil(1 * skillExpMult));
+        } else if (player.skills.evasion.level >= 100 && enemy && !enemy.utsusemiUsed) {
+            // 回避Lv.100奥義『空蝉の術』: 1戦闘1回だけ回避失敗時にも身代わり木片で完全無効化！
+            enemy.utsusemiUsed = true;
+            addLog(`🍃🪵 <b style="color:#00ffcc;">【回避奥義・空蝉の術（1戦闘1回）】</b> 身代わりの木片を残し、敵の反撃を完全に無効化した！`);
+            gainSkillExp('evasion', Math.ceil(2 * skillExpMult));
         } else {
+            // 盾装備時の判定
+            const hasShield = player.equipment.subWeapon && (player.equipment.subWeapon.includes('盾') || player.equipment.subWeapon.includes('シールド'));
+
+            // 盾術Lv.50奥義『パリィ反撃』: 盾装備時、15%の確率で被ダメ0＆敵にDEF×1.5のパリィ反撃ダメージ！
+            if (hasShield && player.skills.shield.level >= 50 && Math.random() < 0.15) {
+                const parryDmg = Math.max(1, Math.floor(player.def * 1.5));
+                enemy.hp -= parryDmg;
+                addLog(`🛡️💥 <b style="color:#ffd700;">【盾術奥義・パリィ反撃！】</b> 完璧なタイミングで反撃を弾き返し、被ダメージを無効化！ <b>${enemy.name}</b> に <b>${parryDmg}</b> の反撃ダメージ！`);
+                gainSkillExp('shield', Math.ceil(3 * skillExpMult));
+                if (enemy.hp <= 0) {
+                    handleEnemyVictory();
+                    return;
+                }
+                calcStatus();
+                return;
+            }
+
             // 防御力(DEF)とMDEFによる被ダメージ軽減（割合＋固定値のハイブリッド軽減）
             const defReductionRatio = 100 / (100 + player.def + Math.floor(player.mdef * 0.5));
             let dmgToPlayer = Math.max(1, Math.floor((enemy.atk - Math.floor(player.def * 0.2)) * defReductionRatio));
             
             // 盾装備時は盾術熟練度に応じてさらに割合カット
-            const hasShield = player.equipment.subWeapon && (player.equipment.subWeapon.includes('盾') || player.equipment.subWeapon.includes('シールド'));
             if (hasShield) {
                 const shieldCut = Math.min(0.5, (player.skills.shield.level - 1) * 0.01);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - shieldCut)));
@@ -5157,6 +5534,12 @@ function nextStep(mode = 'auto') {
             } else if (currentAreaId === "area3" || currentAreaId === "area6") {
                 const waterResPct = Math.min(80, ((player.skills.waterRes.level - 1) * 1) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - waterResPct / 100)));
+            } else if (currentAreaId === "area5" || currentAreaId === "area7") {
+                const windResPct = Math.min(80, ((player.skills.windRes.level - 1) * 1) * resMultiplier);
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - windResPct / 100)));
+            } else if (currentAreaId === "area2" || currentAreaId === "area8") {
+                const earthResPct = Math.min(80, ((player.skills.earthRes.level - 1) * 1) * resMultiplier);
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - earthResPct / 100)));
             }
             
             // パッシブスキルの効果：竜の加護 / 不撓不屈 / パラディン特性 / 神域のオーラ / 大神の全知ルーン紋章 / 職能特化軽減
@@ -5177,14 +5560,22 @@ function nextStep(mode = 'auto') {
                 const cutRatio = Math.min(0.50, jmCutEff.dmgCut / 100);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - cutRatio)));
             }
+
+            // 生存Lv.50『背水の陣』: HP30%以下のピンチ時に被ダメ20%軽減
+            if (player.hp <= player.maxHp * 0.30 && player.skills.survival.level >= 50) {
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * 0.80));
+            }
             
             player.hp -= dmgToPlayer; addLog(`💥 ${enemy.name} の反撃！ <b>${dmgToPlayer}</b> のダメージを受けた！`);
             
-            // 被弾時の熟練度獲得（仕様書：盾装備時は盾術、被弾でも回避熟練度が少し上昇、該当エリアで耐性熟練度上昇）
+            // 被弾時の熟練度獲得（回避、盾術、耐性、生存熟練度）
             gainSkillExp('evasion', 0.5 * skillExpMult);
+            gainSkillExp('survival', Math.ceil(1 * skillExpMult));
             if (hasShield) gainSkillExp('shield', Math.ceil(1 * skillExpMult));
             if (currentAreaId === "area4") gainSkillExp('fireRes', Math.ceil(1 * skillExpMult));
             if (currentAreaId === "area3" || currentAreaId === "area6") gainSkillExp('waterRes', Math.ceil(1 * skillExpMult));
+            if (currentAreaId === "area5" || currentAreaId === "area7") gainSkillExp('windRes', Math.ceil(1 * skillExpMult));
+            if (currentAreaId === "area2" || currentAreaId === "area8") gainSkillExp('earthRes', Math.ceil(1 * skillExpMult));
 
             // 熾天魔王の双翼ヘイロー：1回の戦闘につき1度だけ、致死ダメージ時にMP50%消費でHP35%蘇生！
             if (player.hp <= 0 && enemy && !enemy.reviveUsed && hasEquippedSpecial("seraph_halo")) {
@@ -5195,6 +5586,20 @@ function nextStep(mode = 'auto') {
                     player.hp = Math.max(1, Math.floor(player.maxHp * 0.35));
                     addLog(`👼✨ <b style="color: #ffd700; background: #3a2e00; padding: 1px 6px; border-radius: 3px;">【創世の双翼・奇跡の蘇生（1戦闘1回）】</b> 熾天魔王の双翼ヘイローが輝き、MPを消費してHP <b>${player.hp}</b> で不死鳥の如く蘇った！！`);
                 }
+            }
+
+            // 生存Lv.100奥義『不死鳥の魂』: 1戦闘1度だけ、致死ダメージを受けた際にHP25%で復活！
+            if (player.hp <= 0 && enemy && !enemy.survivalReviveUsed && player.skills.survival.level >= 100) {
+                enemy.survivalReviveUsed = true;
+                player.hp = Math.max(1, Math.floor(player.maxHp * 0.25));
+                addLog(`🔥🐦 <b style="color: #ffaa00; background: #331500; padding: 1px 6px; border-radius: 3px;">【生存奥義・不死鳥の魂（1戦闘1回）】</b> 限界を超えた不屈の生命力により、HP <b>${player.hp}</b> で甦った！`);
+            }
+
+            // 盾術Lv.100奥義『不落の城壁』: 盾装備時、致死ダメージを受けても1戦闘1度だけHP1で踏みとどまる！
+            if (player.hp <= 0 && enemy && !enemy.shieldFortressUsed && hasShield && player.skills.shield.level >= 100) {
+                enemy.shieldFortressUsed = true;
+                player.hp = 1;
+                addLog(`🛡️🏰 <b style="color: #00e5ff; background: #002233; padding: 1px 6px; border-radius: 3px;">【盾術奥義・不落の城壁（1戦闘1回）】</b> 鉄壁の防壁を展開し、HP <b>1</b> で耐え切った！`);
             }
 
             // 獄炎竜の逆鱗アミュレット：被弾時に自身のATK・DEFに応じた紅蓮の炎で自動反撃！

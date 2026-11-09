@@ -2616,3 +2616,318 @@ const PLAYER_TITLES = [
         check: () => (typeof calcCompendiumRate === "function" ? calcCompendiumRate() : 0) >= 85
     }
 ];
+
+// 11. 🌟 全30種スキル熟練度マスターデータ ＆ マイルストーン奥義アビリティ
+// 各熟練度を特定レベル（Lv.10/25/50/100）まで鍛え上げることで、強力な永続パッシブや奥義が自動解放される！
+const SKILL_MASTER_DATA = {
+    // ⚔️ 武器・戦闘熟練度
+    unarmed: {
+        name: "素手熟練度", icon: "👊", category: "weapon",
+        statDesc: "ATK+2, DEF+1",
+        milestones: [
+            { level: 10, name: "拳気の目覚め", desc: "素手装備時ATK+15, DEF+5" },
+            { level: 25, name: "剛体練成", desc: "最大HP+80, DEF+15" },
+            { level: 50, name: "氣功波", desc: "攻撃時、自身のMATKの40%を無属性ダメージとして追加上乗せ" },
+            { level: 100, name: "【奥義】天地覇王拳", desc: "素手時、常時2回攻撃（2連打）が確定発動" }
+        ]
+    },
+    sword: {
+        name: "剣術熟練度", icon: "🗡️", category: "weapon",
+        statDesc: "ATK+2, 会心率UP",
+        milestones: [
+            { level: 10, name: "鋭刃の呼吸", desc: "剣装備時ATK+12" },
+            { level: 25, name: "剣閃の構え", desc: "会心率+4%, 剣装備時ATK+6%" },
+            { level: 50, name: "剛剣の極致", desc: "会心率+6%, 会心ダメージ倍率+0.25倍" },
+            { level: 100, name: "【奥義】一刀両断", desc: "攻撃時20%で敵DEF完全無視＋威力1.6倍の超会心一撃" }
+        ]
+    },
+    katana: {
+        name: "刀術熟練度", icon: "⚔️", category: "weapon",
+        statDesc: "ATK+3, 会心率+0.3%, 会心ダメ+1%",
+        milestones: [
+            { level: 10, name: "刃筋の調律", desc: "会心率+3%, AGI+6" },
+            { level: 25, name: "居合の構え", desc: "刀装備時、会心ダメージ+25%" },
+            { level: 50, name: "抜刀術・疾風", desc: "戦闘開始時の初撃が必ずクリティカルヒット" },
+            { level: 100, name: "【奥義】無念無想・桜花閃", desc: "会心発生時、敵の反撃を封じつつ追加で3連続の斬撃追撃" }
+        ]
+    },
+    spear: {
+        name: "槍術熟練度", icon: "🔱", category: "weapon",
+        statDesc: "ATK+2, 防御貫通",
+        milestones: [
+            { level: 10, name: "長柄の間合い", desc: "槍装備時ATK+10, 命中+3%" },
+            { level: 25, name: "竜穿の切っ先", desc: "敵DEF12%貫通, 槍装備時ATK+6%" },
+            { level: 50, name: "穿孔螺旋撃", desc: "敵DEF25%貫通, 命中率+8%" },
+            { level: 100, name: "【奥義】天翔龍閃槍", desc: "攻撃時25%で敵をスタン（行動不能）にし、威力1.8倍の貫通突撃" }
+        ]
+    },
+    axe: {
+        name: "斧術熟練度", icon: "🪓", category: "weapon",
+        statDesc: "ATK+3",
+        milestones: [
+            { level: 10, name: "重撃の破壊力", desc: "ATK+15, STR+6" },
+            { level: 25, name: "剛力粉砕", desc: "斧装備時ATK+10%, STR+12" },
+            { level: 50, name: "兜割り", desc: "攻撃時、敵のDEFを戦闘中永続で15%粉砕低下させる" },
+            { level: 100, name: "【奥義】大旋風・滅殺壊", desc: "攻撃時25%で威力2.2倍の壊滅的一撃を叩き込む" }
+        ]
+    },
+    bow: {
+        name: "弓術熟練度", icon: "🏹", category: "weapon",
+        statDesc: "ATK+2, 命中+0.5%",
+        milestones: [
+            { level: 10, name: "射手の集中", desc: "命中率+5%, DEX+6" },
+            { level: 25, name: "鷹の眼", desc: "弓装備時先制攻撃率+15%, 命中率+8%" },
+            { level: 50, name: "百発百中", desc: "攻撃が絶対に外れなくなる（命中下限95%保証）" },
+            { level: 100, name: "【奥義】神弓・天矢乱れ降し", desc: "通常攻撃時35%で矢の雨（2〜3回追撃）が自動炸裂" }
+        ]
+    },
+    gun: {
+        name: "銃術熟練度", icon: "🔫", category: "weapon",
+        statDesc: "ATK+2, 固定追撃+2, 命中+0.5%",
+        milestones: [
+            { level: 10, name: "早撃ちの心得", desc: "固定追撃ダメージ+20" },
+            { level: 25, name: "高精度バレル", desc: "銃装備時会心倍率+0.35倍, 命中+8%" },
+            { level: 50, name: "バースト機構", desc: "固定追撃ダメージが常時2.5倍に強化" },
+            { level: 100, name: "【奥義】ジェノサイド・トリガー", desc: "会心攻撃時、敵の最大HPの3%（ボス上限あり）を固定消滅させる" }
+        ]
+    },
+    magic: {
+        name: "魔法熟練度", icon: "✨", category: "weapon",
+        statDesc: "HP+5, MP+5, MATK+2, MDEF+1",
+        milestones: [
+            { level: 10, name: "魔導の脈動", desc: "MATK+15, 最大MP+30" },
+            { level: 25, name: "詠唱加速", desc: "アクティブスキル発動率+6%" },
+            { level: 50, name: "マインドフロー", desc: "全スキル・魔法の消費MPを25%カット" },
+            { level: 100, name: "【奥義】アルテマ・ディザスター", desc: "魔法攻撃時25%で無属性極大追撃（MATKの150%）が炸裂" }
+        ]
+    },
+
+    // 🔥 4大属性魔法熟練度
+    fireMagic: {
+        name: "火魔法熟練度", icon: "🔥", category: "magic",
+        statDesc: "MP+3, MATK+2, 火威力+3%",
+        milestones: [
+            { level: 25, name: "劫火の印", desc: "火属性威力+15%, MATK+15" },
+            { level: 50, name: "インフェルノ・フレア", desc: "火属性攻撃命中時、敵に火傷（毎ターン大ダメージ）付与" },
+            { level: 100, name: "【奥義】獄炎の支配者", desc: "火属性威力+40%, 火魔法攻撃時50%で2回連続詠唱" }
+        ]
+    },
+    waterMagic: {
+        name: "水魔法熟練度", icon: "💧", category: "magic",
+        statDesc: "MP+3, MATK+2, 水威力+3%",
+        milestones: [
+            { level: 25, name: "清流の印", desc: "水属性威力+15%, 最大MP+40" },
+            { level: 50, name: "コキュートス・フロスト", desc: "水属性攻撃命中時、敵を凍結（行動確率低下）" },
+            { level: 100, name: "【奥義】蒼海の支配者", desc: "水属性威力+40%, 毎ターンMP5%自動回復" }
+        ]
+    },
+    windMagic: {
+        name: "風魔法熟練度", icon: "🌪️", category: "magic",
+        statDesc: "MP+3, MATK+2, 風威力+3%",
+        milestones: [
+            { level: 25, name: "疾風の印", desc: "風属性威力+15%, 回避率+4%" },
+            { level: 50, name: "エアロ・テンペスト", desc: "風属性攻撃時、自身の回避率と行動速度がさらに上昇" },
+            { level: 100, name: "【奥義】嵐神の支配者", desc: "風属性威力+40%, 回避成功時に自動で風刃反撃" }
+        ]
+    },
+    earthMagic: {
+        name: "地魔法熟練度", icon: "🪨", category: "magic",
+        statDesc: "MP+3, MATK+2, 地威力+3%",
+        milestones: [
+            { level: 25, name: "金剛の印", desc: "地属性威力+15%, DEF+20" },
+            { level: 50, name: "ガイア・クエイク", desc: "地属性攻撃命中時、敵の攻撃力を15%低下" },
+            { level: 100, name: "【奥義】大地母神の支配者", desc: "地属性威力+40%, 毎ターン最大HPの4%を障壁として再生" }
+        ]
+    },
+
+    // 🛡️ 防御・耐性熟練度
+    shield: {
+        name: "盾術熟練度", icon: "🛡️", category: "defense",
+        statDesc: "HP+10, DEF+2, 盾軽減+1%",
+        milestones: [
+            { level: 10, name: "重盾の構え", desc: "DEF+15, HP+60" },
+            { level: 25, name: "シールドブロック", desc: "盾装備時被ダメージ軽減率+10%" },
+            { level: 50, name: "パリィカウンター", desc: "被弾時12%の確率で被ダメージを0にして即時反撃" },
+            { level: 100, name: "【奥義】イージスの絶対城壁", desc: "致死ダメージを受けた際、戦闘中1度だけHP1で必ず耐え抜く" }
+        ]
+    },
+    evasion: {
+        name: "回避熟練度", icon: "💨", category: "defense",
+        statDesc: "回避+0.5%, AGI+1",
+        milestones: [
+            { level: 10, name: "身軽な足捌き", desc: "回避率+3%, AGI+8" },
+            { level: 25, name: "シャドウステップ", desc: "回避成功時に自身のMPが5回復" },
+            { level: 50, name: "幻惑の見切り", desc: "回避率の上限が50% ➔ 60%に突破開放" },
+            { level: 100, name: "【奥義】明鏡止水・空蝉", desc: "被弾時20%で分身が身代わりとなり完全無効化" }
+        ]
+    },
+    survival: {
+        name: "生存熟練度", icon: "❤️‍🩹", category: "defense",
+        statDesc: "HP+10, DEF+1, MDEF+1, 逆境被ダメカット",
+        milestones: [
+            { level: 10, name: "タフガイ", desc: "最大HP+80, VIT+6" },
+            { level: 25, name: "応急手当の心得", desc: "毎ターン終了時にHPが3%自然再生" },
+            { level: 50, name: "不屈の闘志", desc: "HP30%以下のピンチ時、受ける全ダメージを30%カット" },
+            { level: 100, name: "【奥義】不死鳥の魂", desc: "毎ターンHP5%＆MP3%再生、さらに戦闘不能時に即時HP30%蘇生（1戦闘1回）" }
+        ]
+    },
+    fireRes: {
+        name: "火耐性熟練度", icon: "🛡️🔥", category: "defense",
+        statDesc: "HP+5, MDEF+1, 火軽減+1%",
+        milestones: [
+            { level: 25, name: "耐火皮膜", desc: "火耐性+15%, MDEF+15" },
+            { level: 50, name: "サラマンダーの加護", desc: "火耐性の上限が80% ➔ 90%に突破開放" },
+            { level: 100, name: "【奥義】火神結界", desc: "火属性攻撃を受けた際、ダメージの25%を吸収してHP回復" }
+        ]
+    },
+    waterRes: {
+        name: "水耐性熟練度", icon: "🛡️💧", category: "defense",
+        statDesc: "HP+5, MDEF+1, 水軽減+1%",
+        milestones: [
+            { level: 25, name: "耐水皮膜", desc: "水耐性+15%, MDEF+15" },
+            { level: 50, name: "ウンディーネの加護", desc: "水耐性の上限が80% ➔ 90%に突破開放" },
+            { level: 100, name: "【奥義】水神結界", desc: "水属性攻撃を受けた際、ダメージの25%を吸収してHP回復" }
+        ]
+    },
+    windRes: {
+        name: "風耐性熟練度", icon: "🛡️🌪️", category: "defense",
+        statDesc: "AGI+1, 回避+0.3%, 風軽減+1%",
+        milestones: [
+            { level: 25, name: "防風のベール", desc: "風耐性+15%, 回避率+4%" },
+            { level: 50, name: "シルフの加護", desc: "風耐性の上限が80% ➔ 90%に突破開放" },
+            { level: 100, name: "【奥義】風神結界", desc: "風属性攻撃を受けた際、ダメージの25%を吸収してHP回復" }
+        ]
+    },
+    earthRes: {
+        name: "地耐性熟練度", icon: "🛡️🪨", category: "defense",
+        statDesc: "VIT+1, DEF+1, 地軽減+1%",
+        milestones: [
+            { level: 25, name: "金剛外殻", desc: "地耐性+15%, DEF+20" },
+            { level: 50, name: "ノームの加護", desc: "地耐性の上限が80% ➔ 90%に突破開放" },
+            { level: 100, name: "【奥義】地神結界", desc: "地属性攻撃を受けた際、ダメージの25%を吸収してHP回復" }
+        ]
+    },
+
+    // 🔨 クラフト・生産・交易熟練度
+    blacksmith: {
+        name: "鍛冶熟練度", icon: "🔨", category: "craft",
+        statDesc: "STR+1, DEF+1, 鍛冶良称号率UP",
+        milestones: [
+            { level: 25, name: "名工の鎚音", desc: "鍛冶クラフト時、良称号昇格率+8%" },
+            { level: 50, name: "魂の鍛造", desc: "製作した武器の基本ATKが常時+10%上乗せ" },
+            { level: 100, name: "【奥義】神授の鍛冶神", desc: "クラフト時、20%の確率で素材を一切消費せず製作" }
+        ]
+    },
+    handicraft: {
+        name: "工作熟練度", icon: "⚙️", category: "craft",
+        statDesc: "DEX+1, 命中+0.3%, 工作良称号率UP",
+        milestones: [
+            { level: 25, name: "精密加工", desc: "工作クラフト時、良称号昇格率+8%" },
+            { level: 50, name: "精緻なる細工", desc: "製作した弓・銃・装飾品のクリティカル率+4%" },
+            { level: 100, name: "【奥義】カラクリ神業", desc: "装飾品スロットの全ステータス反映率が1.25倍に強化" }
+        ]
+    },
+    sewing: {
+        name: "裁縫熟練度", icon: "🧵", category: "craft",
+        statDesc: "INT+1, MDEF+1, 裁縫良称号率UP",
+        milestones: [
+            { level: 25, name: "神糸の紡ぎ手", desc: "裁縫クラフト時、良称号昇格率+8%" },
+            { level: 50, name: "魔導織布", desc: "製作した防具の属性耐性が常時+5%上乗せ" },
+            { level: 100, name: "【奥義】天衣無縫", desc: "防具スロット（頭・体・腕・足）のDEF/MDEF反映率が1.25倍に強化" }
+        ]
+    },
+    cooking: {
+        name: "調理熟練度", icon: "🍳", category: "craft",
+        statDesc: "HP+10, MP+5, 料理回復量・持続UP",
+        milestones: [
+            { level: 25, name: "極上の一皿", desc: "料理・秘薬の回復量および獲得EXPバフ+20%" },
+            { level: 50, name: "美食家の知恵", desc: "修練料理・秘薬のバフ持続歩数が+150歩延長" },
+            { level: 100, name: "【奥義】神々の晩餐", desc: "料理・秘薬バフ持続歩数が2倍（最大1,000歩持続）" }
+        ]
+    },
+    refining: {
+        name: "鍛錬熟練度", icon: "⚒️", category: "craft",
+        statDesc: "全基礎ステ+0.5, 鍛錬成功率・補正UP",
+        milestones: [
+            { level: 10, name: "金槌の慣れ", desc: "鍛錬成功率+3%" },
+            { level: 25, name: "名工の研磨", desc: "鍛錬（+値）による全ステータス上昇値が+15%強化" },
+            { level: 50, name: "神匠の研鑽", desc: "鍛錬成功率+8%, 称号継承の成功率が100%確定" },
+            { level: 100, name: "【奥義】神話級限界突破", desc: "鍛錬（+値）のステータス上昇値が+35%強化、さらに鍛錬失敗時の破損リスク完全消滅" }
+        ]
+    },
+    trading: {
+        name: "交易熟練度", icon: "⚖️", category: "craft",
+        statDesc: "LUC+2, 泥率+0.5%, 納品Ptボーナス",
+        milestones: [
+            { level: 10, name: "商人の目利き", desc: "交換屋の納品獲得Pt+6%" },
+            { level: 25, name: "豪商の交渉術", desc: "交換屋の納品獲得Pt+15%, ドロップ率+8%" },
+            { level: 50, name: "黄金の嗅覚", desc: "交換屋の納品獲得Pt+25%, LUC+20" },
+            { level: 100, name: "【奥義】ミダスタッチ", desc: "納品獲得Pt+40%, さらに敵撃破時に交換Ptが追加ドロップ" }
+        ]
+    },
+
+    // 🧭 探索・行動熟練度
+    careful: {
+        name: "警戒熟練度", icon: "👣", category: "action",
+        statDesc: "HP+8, DEF+2, MDEF+2, 慎重回復量UP",
+        milestones: [
+            { level: 10, name: "危機察知", desc: "不意打ち・奇襲を受ける確率が半減" },
+            { level: 25, name: "周到な足運び", desc: "慎重探索時のHP・MP回復量が2倍" },
+            { level: 50, name: "鉄壁の警戒網", desc: "慎重探索中、遭遇した敵の初撃ダメージを50%カット" },
+            { level: 100, name: "【奥義】心眼無想", desc: "慎重探索中、毎歩状態異常が全回復し、選択肢イベント成功率+30%" }
+        ]
+    },
+    rush: {
+        name: "強行熟練度", icon: "⚔️", category: "action",
+        statDesc: "ATK+3, MATK+3, 強襲威力UP",
+        milestones: [
+            { level: 10, name: "突進力", desc: "強行突破時の獲得熟練度倍率が1.6倍に強化" },
+            { level: 25, name: "猛牛の進撃", desc: "強襲攻撃時の与ダメージが1.5倍に強化" },
+            { level: 50, name: "電光石火", desc: "強行突破時に確率で4歩一気に進む" },
+            { level: 100, name: "【奥義】破竹の覇道", desc: "強襲攻撃が常に全体攻撃化し、レア敵出現率が5倍に跳ね上がる" }
+        ]
+    },
+    search: {
+        name: "探索熟練度", icon: "🔍", category: "action",
+        statDesc: "泥率+2%, 命中+0.5%, イベント成功率+2%",
+        milestones: [
+            { level: 10, name: "観察眼", desc: "ドロップ率+8%, LUC+6" },
+            { level: 25, name: "宝探しの勘", desc: "集中探索時の良称号・レアドロップ率が2倍" },
+            { level: 50, name: "トレジャーマスター", desc: "ダンジョン内での隠し宝箱・鉱脈発見率が大幅UP" },
+            { level: 100, name: "【奥義】神の千里眼", desc: "ドロップ補正+40%, 全選択肢イベントの成否を事前に看破" }
+        ]
+    },
+    gathering: {
+        name: "採取熟練度", icon: "🌿", category: "action",
+        statDesc: "MP+5, 採取数UP, 良称号率UP",
+        milestones: [
+            { level: 10, name: "薬草摘み", desc: "採取獲得数+1個の確率が30%" },
+            { level: 25, name: "大地の恵み", desc: "採取獲得数が常時+1個確定" },
+            { level: 50, name: "秘境の群生地", desc: "手動採取時、採取獲得数が常時+2個確定 ＆ 良称号率2倍" },
+            { level: 100, name: "【奥義】神仙の豊穣", desc: "採取時、低確率で全エリアの神話級・激レア素材が混ざり込む" }
+        ]
+    },
+    autoWalk: {
+        name: "行軍熟練度", icon: "🚶", category: "action",
+        statDesc: "HP+5, 回避+0.3%, オートチャンス率UP",
+        milestones: [
+            { level: 10, name: "健脚の旅人", desc: "オート探索中、毎歩HP/MPが微回復" },
+            { level: 25, name: "万里行軍", desc: "オート中の⚡クリックチャンス発生率が1.5倍" },
+            { level: 50, name: "神速の歩調", desc: "オートチャンス発生率2倍 ＆ 獲得ボーナス2倍" },
+            { level: 100, name: "【奥義】縮地の境地", desc: "オート探索の基礎進行スピードが15%恒久加速" }
+        ]
+    }
+};
+
+// 12. 🌌 トータル総合熟練度共鳴マスターデータ (全30種の合計レベルに応じて主人公が永久強化！)
+const SKILL_RESONANCE_TIERS = [
+    { reqTotal: 50,   name: "熟練の萌芽",       bonus: { allStats: 3,  hp: 30,   mp: 15,  expPct: 3,  drop: 3 },  desc: "全基礎ステ+3, HP+30, MP+15, EXP+3%" },
+    { reqTotal: 100,  name: "開花せし技芸",     bonus: { allStats: 6,  hp: 60,   mp: 30,  expPct: 6,  drop: 6 },  desc: "全基礎ステ+6, HP+60, MP+30, EXP+6%, 泥率+6%" },
+    { reqTotal: 200,  name: "百戦の風格",       bonus: { allStats: 12, hp: 120,  mp: 60,  expPct: 10, drop: 10, skillExpPct: 10 }, desc: "全基礎ステ+12, HP+120, MP+60, 泥率+10%, 熟練度EXP+10%" },
+    { reqTotal: 300,  name: "極致への道標",     bonus: { allStats: 20, hp: 200,  mp: 100, critPct: 3, drop: 12, skillExpPct: 15 }, desc: "全基礎ステ+20, HP+200, MP+100, 会心率+3%, 熟練度EXP+15%" },
+    { reqTotal: 500,  name: "万象に通ずる達人", bonus: { allStats: 35, hp: 350,  mp: 180, critPct: 5, critDmg: 0.15, expPct: 15, skillExpPct: 20, drop: 15 }, desc: "全基礎ステ+35, HP+350, MP+180, 会心率+5%, 会心倍率+0.15, EXP+15%" },
+    { reqTotal: 750,  name: "千古不磨の武神",   bonus: { allStats: 55, hp: 550,  mp: 280, skillRate: 5, critPct: 6, skillExpPct: 25, drop: 20 }, desc: "全基礎ステ+55, HP+550, MP+280, スキル発動+5%, 泥率+20%, 熟練度EXP+25%" },
+    { reqTotal: 1000, name: "神域に届きし技",   bonus: { allStats: 80, hp: 800,  mp: 400, allRes: 10, critPct: 8, critDmg: 0.25, skillExpPct: 30, drop: 25 }, desc: "全基礎ステ+80, HP+800, MP+400, 会心率+8%, 全耐性+10%, 泥率+25%" },
+    { reqTotal: 1500, name: "森羅万象の超越者", bonus: { allStats: 130, hp: 1400, mp: 700, allRes: 20, critPct: 12, critDmg: 0.40, skillExpPct: 40, drop: 35 }, desc: "全基礎ステ+130, HP+1400, MP+700, 全耐性+20%, 会心倍率+0.4, 泥率+35%" },
+    { reqTotal: 2000, name: "👑 神技の覇王",     bonus: { allStats: 200, hp: 2200, mp: 1100, allRes: 30, critPct: 15, critDmg: 0.60, dmgCutPct: 15, dmgDealtPct: 20, drop: 50, skillExpPct: 50 }, desc: "全基礎ステ+200, HP+2200, MP+1100, 被ダメ15%カット, 与ダメ+20%, 全耐性+30%, 泥率+50%" }
+];

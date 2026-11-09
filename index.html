@@ -363,10 +363,22 @@
             </div>
         </div>
             <div class="skill-box">
-                <h3>⚔️ スキル熟練度</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                    <h3 style="margin: 0;">⚔️ スキル熟練度 (全30種)</h3>
+                    <button onclick="toggleMilestonesModal()" style="width: auto; padding: 4px 10px; font-size: 11px; background: #6f42c1; border: 1px solid #8a63d2; color: #fff; margin-bottom: 0;">
+                        ✨ 熟練度マイルストーン＆奥義一覧
+                    </button>
+                </div>
+
+                <!-- 🌌 総合熟練度共鳴インジケーター -->
+                <div id="skill-resonance-bar" style="background: linear-gradient(135deg, #152238, #1f1430); border: 1px solid #00ffcc; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; font-size: 12px;">
+                    <!-- JSで動的描画 -->
+                </div>
+
                 <h4 style="margin: 10px 0 5px 0; color: #aaa; border-bottom: 1px solid #444; font-size: 13px;">🗡️ 武器・魔法熟練度（対応武器装備時に乗算ブースト＋固定加算）</h4>
                 <p>素手熟練度: Lv.<span id="level-unarmed">1</span> (Exp: <span id="exp-unarmed">0</span>/<span id="next-unarmed">10</span>) <span style="font-size:11px; color:#888;">[ATK+2, DEF+1]</span></p>
                 <p>剣術熟練度: Lv.<span id="level-sword">1</span> (Exp: <span id="exp-sword">0</span>/<span id="next-sword">10</span>) <span style="font-size:11px; color:#888;">[ATK+2, 会心率UP]</span></p>
+                <p>刀術熟練度: Lv.<span id="level-katana">1</span> (Exp: <span id="exp-katana">0</span>/<span id="next-katana">10</span>) <span style="font-size:11px; color:#ffd700;">[ATK+3, 会心率+0.3%, 会心ダメ+1%]</span></p>
                 <p>槍術熟練度: Lv.<span id="level-spear">1</span> (Exp: <span id="exp-spear">0</span>/<span id="next-spear">10</span>) <span style="font-size:11px; color:#888;">[ATK+2, 防御貫通]</span></p>
                 <p>斧術熟練度: Lv.<span id="level-axe">1</span> (Exp: <span id="exp-axe">0</span>/<span id="next-axe">10</span>) <span style="font-size:11px; color:#888;">[ATK+3]</span></p>
                 <p>弓術熟練度: Lv.<span id="level-bow">1</span> (Exp: <span id="exp-bow">0</span>/<span id="next-bow">10</span>) <span style="font-size:11px; color:#888;">[ATK+2, 命中+0.5%]</span></p>
@@ -379,9 +391,12 @@
 
                 <h4 style="margin: 15px 0 5px 0; color: #aaa; border-bottom: 1px solid #444; font-size: 13px;">🛡️ 防御・耐性熟練度</h4>
                 <p>盾術熟練度: Lv.<span id="level-shield">1</span> (Exp: <span id="exp-shield">0</span>/<span id="next-shield">10</span>) <span style="font-size:11px; color:#888;">[HP+10, DEF+2, 盾軽減+1%]</span></p>
-                <p>回避熟練度: Lv.<span id="level-evasion">1</span> (Exp: <span id="exp-evasion">0</span>/<span id="next-evasion">10</span>) <span style="font-size:11px; color:#888;">[回避+0.5%]</span></p>
+                <p>回避熟練度: Lv.<span id="level-evasion">1</span> (Exp: <span id="exp-evasion">0</span>/<span id="next-evasion">10</span>) <span style="font-size:11px; color:#888;">[回避+0.5%, AGI+1]</span></p>
+                <p>生存熟練度: Lv.<span id="level-survival">1</span> (Exp: <span id="exp-survival">0</span>/<span id="next-survival">10</span>) <span style="font-size:11px; color:#ff9999;">[HP+10, DEF+1, MDEF+1, 逆境被ダメカット]</span></p>
                 <p>火耐性熟練度: Lv.<span id="level-fireRes">1</span> (Exp: <span id="exp-fireRes">0</span>/<span id="next-fireRes">10</span>) <span style="font-size:11px; color:#888;">[HP+5, MDEF+1, 火軽減+1%]</span></p>
                 <p>水耐性熟練度: Lv.<span id="level-waterRes">1</span> (Exp: <span id="exp-waterRes">0</span>/<span id="next-waterRes">10</span>) <span style="font-size:11px; color:#888;">[HP+5, MDEF+1, 水軽減+1%]</span></p>
+                <p>風耐性熟練度: Lv.<span id="level-windRes">1</span> (Exp: <span id="exp-windRes">0</span>/<span id="next-windRes">10</span>) <span style="font-size:11px; color:#66ffcc;">[AGI+1, 回避+0.3%, 風軽減+1%]</span></p>
+                <p>地耐性熟練度: Lv.<span id="level-earthRes">1</span> (Exp: <span id="exp-earthRes">0</span>/<span id="next-earthRes">10</span>) <span style="font-size:11px; color:#d2b48c;">[VIT+1, DEF+1, 地軽減+1%]</span></p>
 
                 <h4 style="margin: 15px 0 5px 0; color: #00ffcc; border-bottom: 1px solid #444; font-size: 13px;">🧭 探索・行動熟練度（手動・自動・採取アクションで上昇）</h4>
                 <p>👣 警戒熟練度: Lv.<span id="level-careful">1</span> (Exp: <span id="exp-careful">0</span>/<span id="next-careful">10</span>) <span style="font-size:11px; color:#88ff88;">[HP+8, DEF+2, MDEF+2, 慎重回復量UP]</span></p>
@@ -390,11 +405,27 @@
                 <p>🌿 採取熟練度: Lv.<span id="level-gathering">1</span> (Exp: <span id="exp-gathering">0</span>/<span id="next-gathering">10</span>) <span style="font-size:11px; color:#88ccff;">[MP+5, 複数個採取率UP, 良称号率UP]</span></p>
                 <p>🚶 行軍(放置)熟練度: Lv.<span id="level-autoWalk">1</span> (Exp: <span id="exp-autoWalk">0</span>/<span id="next-autoWalk">10</span>) <span style="font-size:11px; color:#ccc;">[HP+5, 回避+0.3%, オートチャンス率UP]</span></p>
 
-                <h4 style="margin: 15px 0 5px 0; color: #aaa; border-bottom: 1px solid #444; font-size: 13px;">🔨 クラフト・生産熟練度（クラフト良称号付与率UP＋能力加算）</h4>
-                <p>裁縫熟練度: Lv.<span id="level-sewing">1</span> (Exp: <span id="exp-sewing">0</span>/<span id="next-sewing">10</span>) <span style="font-size:11px; color:#888;">[MDEF+2, 裁縫良称号率UP]</span></p>
+                <h4 style="margin: 15px 0 5px 0; color: #aaa; border-bottom: 1px solid #444; font-size: 13px;">🔨 クラフト・生産・交易熟練度（良称号付与率・鍛錬成功率・納品Pt UP）</h4>
                 <p>鍛冶熟練度: Lv.<span id="level-blacksmith">1</span> (Exp: <span id="exp-blacksmith">0</span>/<span id="next-blacksmith">10</span>) <span style="font-size:11px; color:#888;">[ATK+2, DEF+2, 鍛冶良称号率UP]</span></p>
                 <p>工作熟練度: Lv.<span id="level-handicraft">1</span> (Exp: <span id="exp-handicraft">0</span>/<span id="next-handicraft">10</span>) <span style="font-size:11px; color:#888;">[泥率+2%, 工作良称号率UP]</span></p>
+                <p>裁縫熟練度: Lv.<span id="level-sewing">1</span> (Exp: <span id="exp-sewing">0</span>/<span id="next-sewing">10</span>) <span style="font-size:11px; color:#888;">[MDEF+2, 裁縫良称号率UP]</span></p>
                 <p>調理熟練度: Lv.<span id="level-cooking">1</span> (Exp: <span id="exp-cooking">0</span>/<span id="next-cooking">10</span>) <span style="font-size:11px; color:#888;">[HP+10, MP+5, 回復薬効果UP]</span></p>
+                <p>鍛錬熟練度: Lv.<span id="level-refining">1</span> (Exp: <span id="exp-refining">0</span>/<span id="next-refining">10</span>) <span style="font-size:11px; color:#ffd700;">[全ステ+0.5, 鍛錬成功率+0.2%, +値補正UP]</span></p>
+                <p>交易熟練度: Lv.<span id="level-trading">1</span> (Exp: <span id="exp-trading">0</span>/<span id="next-trading">10</span>) <span style="font-size:11px; color:#ffd700;">[LUC+2, 泥率+0.5%, 納品PtボーナスUP]</span></p>
+            </div>
+
+            <!-- ✨ 熟練度マイルストーン＆奥義一覧モーダル -->
+            <div id="milestones-modal" style="display: none; background: #151a22; border: 2px solid #6f42c1; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #ffd700; font-size: 16px;">✨ 全30種 熟練度マイルストーン＆奥義一覧</h3>
+                    <button onclick="toggleMilestonesModal()" style="width: auto; padding: 2px 8px; font-size: 12px; background: #555; margin-bottom: 0;">✕ 閉じる</button>
+                </div>
+                <p style="font-size: 11px; color: #bbb; margin-top: 0; margin-bottom: 8px;">
+                    各熟練度が特定レベル（Lv.10/25/50/100）に達すると、強力な固有アビリティや必殺奥義が自動解放されます！（解放済みの項目は点灯します）
+                </p>
+                <div id="milestones-modal-list" style="display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px;">
+                    <!-- JSで動的描画 -->
+                </div>
             </div>
         </div>
 
