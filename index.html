@@ -414,17 +414,19 @@
                 <p>交易熟練度: Lv.<span id="level-trading">1</span> (Exp: <span id="exp-trading">0</span>/<span id="next-trading">10</span>) <span style="font-size:11px; color:#ffd700;">[LUC+2, 泥率+0.5%, 納品PtボーナスUP]</span></p>
             </div>
 
-            <!-- ✨ 熟練度マイルストーン＆奥義一覧モーダル -->
-            <div id="milestones-modal" style="display: none; background: #151a22; border: 2px solid #6f42c1; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <h3 style="margin: 0; color: #ffd700; font-size: 16px;">✨ 全30種 熟練度マイルストーン＆奥義一覧</h3>
-                    <button onclick="toggleMilestonesModal()" style="width: auto; padding: 2px 8px; font-size: 12px; background: #555; margin-bottom: 0;">✕ 閉じる</button>
-                </div>
-                <p style="font-size: 11px; color: #bbb; margin-top: 0; margin-bottom: 8px;">
-                    各熟練度が特定レベル（Lv.10/25/50/100）に達すると、強力な固有アビリティや必殺奥義が自動解放されます！（解放済みの項目は点灯します）
-                </p>
-                <div id="milestones-modal-list" style="display: grid; grid-template-columns: 1fr; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px;">
-                    <!-- JSで動的描画 -->
+            <!-- ✨ 熟練度マイルストーン＆奥義一覧モーダル（画面中央オーバーレイポップアップ） -->
+            <div id="milestones-modal" onclick="if(event.target === this) toggleMilestonesModal()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center; padding: 12px; box-sizing: border-box;">
+                <div style="background: #151a22; border: 2px solid #8a63d2; border-radius: 10px; padding: 14px; max-width: 650px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.9); box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #334455; padding-bottom: 6px;">
+                        <h3 style="margin: 0; color: #ffd700; font-size: 16px;">✨ 全30種 熟練度マイルストーン＆奥義</h3>
+                        <button onclick="toggleMilestonesModal()" style="width: auto; padding: 4px 12px; font-size: 13px; background: #c82333; color: #fff; border: none; border-radius: 4px; margin-bottom: 0; cursor: pointer;">✕ 閉じる</button>
+                    </div>
+                    <p style="font-size: 11px; color: #bbb; margin-top: 0; margin-bottom: 8px;">
+                        各熟練度が特定レベル（Lv.10/25/50/100）に達すると、強力な固有アビリティや必殺奥義が自動解放されます！（解放済みの項目は点灯します）
+                    </p>
+                    <div id="milestones-modal-list" style="display: grid; grid-template-columns: 1fr; gap: 8px; overflow-y: auto; flex: 1; padding-right: 4px;">
+                        <!-- JSで動的描画 -->
+                    </div>
                 </div>
             </div>
         </div>

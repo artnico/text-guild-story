@@ -448,15 +448,22 @@ const DEFAULT_SKILL_KEYS = [
     'fireMagic', 'waterMagic', 'windMagic', 'earthMagic', 'careful', 'rush', 'search', 'gathering', 'autoWalk'
 ];
 
+// スキル熟練度の次のレベルに必要な経験値を算出（指数爆発を防ぎ、着実にLv.25, 50, 100を目指せる多項式カーブ）
+function getSkillNextExp(level) {
+    // Lv.1 ➔ 15, Lv.10 ➔ 120, Lv.25 ➔ 450, Lv.50 ➔ 1450, Lv.100 ➔ 5500
+    return Math.floor(15 + level * 8 + Math.pow(level, 1.35) * 5);
+}
+
 function ensureSkillsStructure() {
     if (!player.skills) player.skills = {};
     for (const key of DEFAULT_SKILL_KEYS) {
         if (!player.skills[key]) {
-            player.skills[key] = { level: 1, exp: 0, next: 10 };
+            player.skills[key] = { level: 1, exp: 0, next: getSkillNextExp(1) };
         } else {
-            if (typeof player.skills[key].level !== 'number') player.skills[key].level = 1;
-            if (typeof player.skills[key].exp !== 'number') player.skills[key].exp = 0;
-            if (typeof player.skills[key].next !== 'number') player.skills[key].next = 10;
+            if (typeof player.skills[key].level !== 'number' || player.skills[key].level < 1) player.skills[key].level = 1;
+            if (typeof player.skills[key].exp !== 'number' || player.skills[key].exp < 0) player.skills[key].exp = 0;
+            // 既存セーブデータの極端な指数爆発要求値を正常な多項式カーブに自動補正・正規化
+            player.skills[key].next = getSkillNextExp(player.skills[key].level);
         }
     }
 }
@@ -640,7 +647,7 @@ function toggleMilestonesModal() {
     const modal = document.getElementById('milestones-modal');
     if (!modal) return;
     if (modal.style.display === "none" || modal.style.display === "") {
-        modal.style.display = "block";
+        modal.style.display = "flex";
         renderMilestonesModalList();
     } else {
         modal.style.display = "none";
@@ -709,14 +716,40 @@ function renderMilestonesModalList() {
     listEl.innerHTML = html;
 }
 
+// プレイヤーレベル(PLV)の次レベル必要経験値を算出（指数爆発を防ぐ多項式カーブ）
+function getPlayerNextExp(level) {
+    // Lv.1 ➔ 100, Lv.10 ➔ 450, Lv.30 ➔ 2600, Lv.50 ➔ 8200, Lv.100 ➔ 62000
+    return Math.floor(80 + level * 20 + Math.pow(level, 2.05) * 3.8);
+}
+
+// ジョブレベル(JLV)の次レベル必要経験値を算出（上級職・隠し職でも指数爆発せず着実に成長する多項式カーブ）
+function getJobNextExp(jobName, level) {
+    const jobInfo = (typeof JOBS !== "undefined") ? JOBS[jobName] : null;
+    // ジョブの格に応じた基礎倍率 (初級1.0〜最上級1.35倍程度)
+    const factor = jobInfo?.expFactor ? Math.min(1.35, Math.max(1.0, 1.0 + (jobInfo.expFactor - 1.0) * 0.45)) : 1.0;
+    
+    if (level <= 100) {
+        // Lv.1 ➔ 100, Lv.10 ➔ 450, Lv.30 ➔ 2500, Lv.50 ➔ 7800, Lv.70 ➔ 18000, Lv.100 ➔ 58000
+        const base = Math.floor(75 + level * 25 + Math.pow(level, 2.05) * 3.5);
+        return Math.floor(base * factor);
+    } else {
+        // Lv.101以降の超越レベル（無限育成：1レベルあたり穏やかに加算）
+        const star = level - 100;
+        const baseAt100 = Math.floor((75 + 100 * 25 + Math.pow(100, 2.05) * 3.5) * factor);
+        return Math.floor(baseAt100 + star * 1200 + Math.pow(star, 1.2) * 150);
+    }
+}
+
 // --- 👑 ジョブ超越マスタリー＆特化育成ヘルパー関数 ---
 function ensureJobMasteryStructure(jobId) {
     if (!player.jobLevels[jobId]) {
-        player.jobLevels[jobId] = { level: 1, exp: 0, nextExp: 100, isMaster: false, masteryPoints: 0, masteryAlloc: { spec1: 0, spec2: 0, spec3: 0 } };
+        player.jobLevels[jobId] = { level: 1, exp: 0, nextExp: getJobNextExp(jobId, 1), isMaster: false, masteryPoints: 0, masteryAlloc: { spec1: 0, spec2: 0, spec3: 0 } };
     }
     const jd = player.jobLevels[jobId];
     if (typeof jd.masteryPoints !== "number") jd.masteryPoints = 0;
     if (!jd.masteryAlloc) jd.masteryAlloc = { spec1: 0, spec2: 0, spec3: 0 };
+    // 既存セーブデータの極端な指数爆発要求値を正常な多項式カーブに自動補正・正規化
+    jd.nextExp = getJobNextExp(jobId, jd.level);
     return jd;
 }
 
@@ -2124,7 +2157,7 @@ function gainSkillExp(type, amount) {
         leveledUp = true;
         skill.level++;
         skill.exp = Math.max(0, Math.round((skill.exp - skill.next) * 10) / 10);
-        skill.next = Math.floor(skill.next * 1.5);
+        skill.next = getSkillNextExp(skill.level);
         const skillNameMap = {
             unarmed: '素手',
             sword: '剣術', katana: '刀術', magic: '魔法', sewing: '裁縫',
@@ -2195,7 +2228,7 @@ function gainExp(amount) {
     while (player.exp >= player.nextExp) {
         player.level++;
         player.exp -= player.nextExp;
-        player.nextExp = Math.floor(player.nextExp * 1.3);
+        player.nextExp = getPlayerNextExp(player.level);
         player.statPoints += 5; // レベルアップで5ポイント獲得
         leveledUp = true;
         addLog(`<span style="color: #ffff00; font-weight: bold;">🆙 レベルアップ！ PLVが ${player.level} になった！(ステータスPt+5)</span>`);
@@ -2216,10 +2249,7 @@ function gainExp(amount) {
     while (jobData.exp >= jobData.nextExp) {
         jobData.level++;
         jobData.exp -= jobData.nextExp;
-        
-        // 次の必要経験値計算（Lv.101以降はインフレしすぎないよう1.12倍）
-        const factor = jobData.level > 100 ? 1.12 : (JOBS[player.job]?.expFactor || 1.1);
-        jobData.nextExp = Math.floor(jobData.nextExp * factor);
+        jobData.nextExp = getJobNextExp(player.job, jobData.level);
         
         // Lv.100到達時の初回MASTER判定
         if (jobData.level === 100 && !jobData.isMaster) {
@@ -4292,7 +4322,7 @@ function applySavePayload(data, isManual = false) {
 
     player.level = sp.level ?? 1;
     player.exp = sp.exp ?? 0;
-    player.nextExp = sp.nextExp ?? 100;
+    player.nextExp = getPlayerNextExp(player.level);
     player.statPoints = sp.statPoints ?? 0;
     player.job = sp.job && JOBS[sp.job] ? sp.job : "冒険者";
     player.jobLevels = sp.jobLevels || { "冒険者": { level: 1, exp: 0, nextExp: 100, isMaster: false } };
@@ -4487,14 +4517,13 @@ function resetSaveData() {
     // メモリ上のプレイヤー・ダンジョンデータも完全初期化（リロードが効かない環境でも即座に初期状態へ戻す）
     player.level = 1;
     player.exp = 0;
-    player.nextExp = 100;
+    player.nextExp = getPlayerNextExp(1);
     player.statPoints = 0;
     player.job = "冒険者";
-    player.jobLevels = { "冒険者": { level: 1, exp: 0, nextExp: 100, isMaster: false } };
+    player.jobLevels = { "冒険者": { level: 1, exp: 0, nextExp: getJobNextExp("冒険者", 1), isMaster: false } };
     player.stats = { str: 10, int: 10, vit: 10, dex: 10, agi: 10, luc: 10 };
     for (const slot in player.equipment) player.equipment[slot] = null;
     ensureSkillsStructure();
-    for (const sKey in player.skills) player.skills[sKey] = { level: 1, exp: 0, next: 10 };
     player.unlockedSkills = [];
     player.activeSkills = [];
     player.passiveSkills = [];

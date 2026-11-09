@@ -2441,7 +2441,29 @@ const PLAYER_TITLES = [
         buffDesc: "HP+40, ATK+6, DEF+5, 採取獲得数+10%確率UP",
         desc: "HP+40, ATK+6, DEF+5, 採取獲得数+10%確率UP",
         bonus: { hp: 40, atk: 6, def: 5 },
-        check: (p) => (p.compendium?.monsters?.["森の主ベア"]?.defeatCount || 0) > 0 || (p.statsTrack?.bossKills || 0) >= 1
+        check: (p) => (p.compendium?.monsters?.["森の主ベア"] || p.compendium?.monsters?.["森の主ベア"]?.defeatCount || 0) > 0 || (p.statsTrack?.bossKills || 0) >= 1
+    },
+    {
+        id: "岩漿を砕く剛腕",
+        name: "岩漿を砕く剛腕",
+        condDesc: "エリア2 BOSS「ロックゴーレム」を討伐する",
+        condition: "エリア2 BOSS「ロックゴーレム」を討伐する",
+        rewardStatPt: 6,
+        buffDesc: "HP+60, DEF+12, VIT+6, 物理防御貫通+5%",
+        desc: "HP+60, DEF+12, VIT+6, 物理防御貫通+5%",
+        bonus: { hp: 60, def: 12, vit: 6 },
+        check: (p) => (p.compendium?.monsters?.["ロックゴーレム"] || p.compendium?.monsters?.["ロックゴーレム"]?.defeatCount || 0) > 0
+    },
+    {
+        id: "深沼の巨蛇を屠る者",
+        name: "深沼の巨蛇を屠る者",
+        condDesc: "エリア3 BOSS「マッドハイドラ」を討伐する",
+        condition: "エリア3 BOSS「マッドハイドラ」を討伐する",
+        rewardStatPt: 8,
+        buffDesc: "HP+80, MP+40, MATK+15, INT+6, 水耐性+10%",
+        desc: "HP+80, MP+40, MATK+15, INT+6, 水耐性+10%",
+        bonus: { hp: 80, mp: 40, matk: 15, int: 6 },
+        check: (p) => (p.compendium?.monsters?.["マッドハイドラ"] || p.compendium?.monsters?.["マッドハイドラ"]?.defeatCount || 0) > 0
     },
     {
         id: "百戦錬磨の狩人",
@@ -2501,16 +2523,16 @@ const PLAYER_TITLES = [
             if (p.equipment) {
                 for (const slot in p.equipment) {
                     const eq = p.equipment[slot];
-                    if (eq && typeof eq === "object" && (eq.refine || 0) >= 10) return true;
+                    if (eq && typeof eq === "string") {
+                        const parsed = typeof parseItemName === "function" ? parseItemName(eq) : null;
+                        if (parsed && (parsed.plus || 0) >= 10) return true;
+                    }
                 }
             }
             if (p.inventory) {
                 for (const name in p.inventory) {
-                    if (p.inventory[name]?.items) {
-                        for (const it of p.inventory[name].items) {
-                            if ((it.refine || 0) >= 10) return true;
-                        }
-                    }
+                    const parsed = typeof parseItemName === "function" ? parseItemName(name) : null;
+                    if (parsed && (parsed.plus || 0) >= 10) return true;
                 }
             }
             return false;
@@ -2536,7 +2558,7 @@ const PLAYER_TITLES = [
         buffDesc: "HP+120, ATK+25, MATK+25, STR+10, 火耐性+20%",
         desc: "HP+120, ATK+25, MATK+25, STR+10, 火耐性+20%",
         bonus: { hp: 120, atk: 25, matk: 25, str: 10, fire_res: 20 },
-        check: (p) => (p.compendium?.monsters?.["インフェルノドレイク"]?.defeatCount || 0) > 0
+        check: (p) => (p.compendium?.monsters?.["インフェルノドレイク"] || p.compendium?.monsters?.["インフェルノドレイク"]?.defeatCount || 0) > 0
     },
     {
         id: "機神を超えし者",
@@ -2547,7 +2569,7 @@ const PLAYER_TITLES = [
         buffDesc: "HP+160, MP+80, ATK+35, MATK+35, DEX+12, 命中+8%",
         desc: "HP+160, MP+80, ATK+35, MATK+35, DEX+12, 命中+8%",
         bonus: { hp: 160, mp: 80, atk: 35, matk: 35, dex: 12, hit: 8 },
-        check: (p) => (p.compendium?.monsters?.["大廃墟の管理者・オメガ"]?.defeatCount || 0) > 0
+        check: (p) => (p.compendium?.monsters?.["大廃墟の管理者・オメガ"] || p.compendium?.monsters?.["大廃墟の管理者・オメガ"]?.defeatCount || 0) > 0
     },
     {
         id: "天界の覇者",
@@ -2558,7 +2580,7 @@ const PLAYER_TITLES = [
         buffDesc: "全基礎ステ+15, HP+220, MP+120, ATK/MATK+45, 獲得EXP+15%",
         desc: "全基礎ステ+15, HP+220, MP+120, ATK/MATK+45, 獲得EXP+15%",
         bonus: { allStats: 15, hp: 220, mp: 120, atk: 45, matk: 45, expPct: 15 },
-        check: (p) => (p.compendium?.monsters?.["堕天王ルシファー"]?.defeatCount || 0) > 0
+        check: (p) => (p.compendium?.monsters?.["堕天王ルシファー"] || p.compendium?.monsters?.["堕天王ルシファー"]?.defeatCount || 0) > 0
     },
     {
         id: "星辰を翔ける竜王",
@@ -2569,7 +2591,7 @@ const PLAYER_TITLES = [
         buffDesc: "全基礎ステ+22, HP+350, ATK/MATK+70, 会心率+10%, 泥率+25%",
         desc: "全基礎ステ+22, HP+350, ATK/MATK+70, 会心率+10%, 泥率+25%",
         bonus: { allStats: 22, hp: 350, atk: 70, matk: 70, critPct: 10, drop: 25 },
-        check: (p) => (p.compendium?.monsters?.["星竜コスモバハムート"]?.defeatCount || 0) > 0
+        check: (p) => (p.compendium?.monsters?.["星竜コスモバハムート"] || p.compendium?.monsters?.["星竜コスモバハムート"]?.defeatCount || 0) > 0
     },
     {
         id: "黄昏を超越せし神殺し",
@@ -2580,7 +2602,7 @@ const PLAYER_TITLES = [
         buffDesc: "全基礎ステ+35, HP+550, MP+250, ATK/MATK+120, DEF/MDEF+80, 泥率+40%",
         desc: "全基礎ステ+35, HP+550, MP+250, ATK/MATK+120, DEF/MDEF+80, 泥率+40%",
         bonus: { allStats: 35, hp: 550, mp: 250, atk: 120, matk: 120, def: 80, mdef: 80, drop: 40 },
-        check: (p) => (p.compendium?.monsters?.["最高神オーディン・オルタ"]?.defeatCount || 0) > 0
+        check: (p) => (p.compendium?.monsters?.["最高神オーディン・オルタ"] || p.compendium?.monsters?.["最高神オーディン・オルタ"]?.defeatCount || 0) > 0
     },
     {
         id: "ギルドの頼れる英雄",
