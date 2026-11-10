@@ -332,7 +332,21 @@
             <p style="font-size: 12px; color: #00ffcc; margin: 0;">📖 図鑑収集ボーナス (コンプ率 <span id="status-comp-rate">0.0</span>%): <span id="status-comp-bonus">全基礎ステ+0, HP+0, ATK/MATK+0, 泥率+0%</span></p>
         </div>
         <div class="status-box">
-            <h3>🛡️ 現在の装備</h3>
+            <!-- 📁 装備マイセット（一括着替え）コンテナ -->
+            <div style="background: #141c26; border: 1px solid #2d4560; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 4px;">
+                    <span style="color: #79c0ff; font-weight: bold; font-size: 13px;">📁 装備マイセット（一括着替え）</span>
+                    <span style="font-size: 11px; color: #888;">登録した装備構成を1タップで即時換装</span>
+                </div>
+                <div id="equipment-presets-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px;">
+                    <!-- JSで動的生成 -->
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 4px;">
+                <h3 style="margin: 0;">🛡️ 現在の装備</h3>
+                <div id="equipment-set-bonuses-box" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
+            </div>
             <div id="equipment-list" style="font-size: 14px;">
                 <!-- 装備リストがここに表示されます -->
             </div>

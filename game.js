@@ -1219,6 +1219,22 @@ function calcStatus() {
         }
     }
 
+    // 🛡️ 発動中シリーズセット効果のステータス加算
+    if (typeof getActiveSetBonuses === "function") {
+        const activeSets = getActiveSetBonuses();
+        for (const act of activeSets) {
+            for (const th of act.thresholds) {
+                if (th.stats) {
+                    for (const k in th.stats) {
+                        if (eq[k] !== undefined) {
+                            eq[k] += th.stats[k];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     const st = player.stats;
     
      // --- ジョブマスターの永久パッシブ集計 ---
@@ -1921,9 +1937,287 @@ function useItem(itemName, isAuto = false) {
     return true;
 }
 
+// ====== 🛡️ シリーズ装備・セット効果マスターデータ ======
+const EQUIPMENT_SERIES_DEFS = [
+    {
+        id: "racco",
+        name: "ラッコ",
+        icon: "🦦",
+        color: "#d2a8ff",
+        items: ["ラッコのフード", "ラッコの手袋", "森主の剛毛鎧", "黄金ラッコの王衣", "野獣の獣爪ナックル"],
+        thresholds: [
+            { count: 2, desc: "AGI+5, 採取・交易熟練度+20%", stats: { agi: 5 }, bonuses: { gatherSkillExp: 0.20, tradeSkillExp: 0.20 } },
+            { count: 3, desc: "AGI+10, LUC+10, 泥率+15%, 回避+5%", stats: { agi: 10, luc: 10, drop: 15, eva: 5 } }
+        ]
+    },
+    {
+        id: "iron_golem",
+        name: "重鉄ゴーレム",
+        icon: "🗿",
+        color: "#79c0ff",
+        items: ["ロックヘルム", "アイアン籠手", "ゴーレムプレート", "ストーンシールド", "アイアンソード", "アイアンスピア", "重鉄のアイアンナックル", "重鉄のトマホーク"],
+        thresholds: [
+            { count: 2, desc: "DEF+15, VIT+8", stats: { def: 15, vit: 8 } },
+            { count: 4, desc: "DEF+40, VIT+15, 被ダメ10%カット", stats: { def: 40, vit: 15 }, bonuses: { dmgCutPct: 10 } }
+        ]
+    },
+    {
+        id: "abyss_witch",
+        name: "深淵魔術",
+        icon: "🔮",
+        color: "#bf80ff",
+        items: ["深淵魔女の三角帽", "魔導師のローブ", "幻霧のエーテルマント", "深淵クラゲの魔導灯", "深淵魔女のグリモワール", "毒蛇咬のポイズンクロー"],
+        thresholds: [
+            { count: 2, desc: "MATK+25, INT+8", stats: { matk: 25, int: 8 } },
+            { count: 3, desc: "MATK+60, INT+16, 全魔法スキル威力+20%", stats: { matk: 60, int: 16 }, bonuses: { magicDmgPct: 20 } }
+        ]
+    },
+    {
+        id: "steam_cyber",
+        name: "スチーム機巧",
+        icon: "⚙️",
+        color: "#ffaa44",
+        items: ["超演算タクティカルバイザー", "魔導探知ゴーグル", "ハイパー合金アーマー", "パワードアーム", "スチームグリーヴ", "機巧ピストンナックル", "スチームライフル"],
+        thresholds: [
+            { count: 2, desc: "DEX+12, スキル発動+5%", stats: { dex: 12 }, bonuses: { skillTrigger: 5 } },
+            { count: 4, desc: "DEX+25, クリティカル倍率+0.3, スキル発動+10%", stats: { dex: 25 }, bonuses: { skillTrigger: 10, critDmg: 30 } }
+        ]
+    },
+    {
+        id: "seraph",
+        name: "天界セラフィム",
+        icon: "👼",
+        color: "#ffd700",
+        items: ["エンジェルヘイロー", "大天使のローブ", "熾天使の羽靴", "セラフィムメタルの聖冠", "熾天使の黄金翼衣", "天照の神刀・布都御魂", "ホーリーランス"],
+        thresholds: [
+            { count: 2, desc: "最大HP+120, 最大MP+80, 全耐性+10%", stats: { hp: 120, mp: 80 }, bonuses: { allRes: 10 } },
+            { count: 4, desc: "全基礎ステ+15, 毎ターンHP/MP5%自動回復", stats: { str: 15, int: 15, vit: 15, dex: 15, agi: 15, luc: 15 }, bonuses: { autoRegenPct: 5 } }
+        ]
+    },
+    {
+        id: "training_master",
+        name: "求道修練",
+        icon: "🧪",
+        color: "#88ff88",
+        items: ["研鑽の鉢金", "求道工匠の手袋", "修羅の戦脚", "苦行僧のペンダント"],
+        thresholds: [
+            { count: 2, desc: "全スキルの熟練度獲得量 +20%", bonuses: { allSkillExp: 0.20 } },
+            { count: 4, desc: "全熟練度+50%, JLV経験値+50%, 獲得EXP+25%", bonuses: { allSkillExp: 0.50, jlvExp: 0.50, exp: 0.25 } }
+        ]
+    }
+];
+
+// 発動中のシリーズセット効果を集計
+function getActiveSetBonuses() {
+    const active = [];
+    if (!player || !player.equipment) return active;
+
+    const equippedBaseNames = [];
+    for (const slot in player.equipment) {
+        const item = player.equipment[slot];
+        if (!item) continue;
+        const { baseName } = typeof parseItemName === "function" ? parseItemName(item) : { baseName: item };
+        equippedBaseNames.push(baseName);
+    }
+
+    for (const series of EQUIPMENT_SERIES_DEFS) {
+        let count = 0;
+        for (const targetName of series.items) {
+            if (equippedBaseNames.some(n => n === targetName || n.includes(targetName))) {
+                count++;
+            }
+        }
+        if (count >= 2) {
+            const passed = series.thresholds.filter(t => count >= t.count);
+            if (passed.length > 0) {
+                active.push({
+                    series,
+                    count,
+                    thresholds: passed
+                });
+            }
+        }
+    }
+    return active;
+}
+
+// 発動中のシリーズセット効果から特定のボーナス数値を集計
+function getEquipmentSetBonusValue(bonusKey) {
+    if (typeof getActiveSetBonuses !== "function") return 0;
+    const activeSets = getActiveSetBonuses();
+    let val = 0;
+    for (const act of activeSets) {
+        for (const th of act.thresholds) {
+            if (th.bonuses && th.bonuses[bonusKey]) {
+                val += th.bonuses[bonusKey];
+            }
+        }
+    }
+    return val;
+}
+
+// ====== 📁 装備マイセット（プリセット保存＆ワンタップ着替え） ======
+function ensureEquipmentPresetsStructure() {
+    if (!player.equipmentPresets || !Array.isArray(player.equipmentPresets) || player.equipmentPresets.length !== 5) {
+        const defaultNames = ["セット1 (汎用)", "セット2 (育成)", "セット3 (泥率)", "セット4 (火力)", "セット5 (耐久)"];
+        const existing = Array.isArray(player.equipmentPresets) ? player.equipmentPresets : [];
+        player.equipmentPresets = [0, 1, 2, 3, 4].map(i => {
+            return {
+                id: i + 1,
+                name: (existing[i] && existing[i].name) ? existing[i].name : defaultNames[i],
+                equipment: (existing[i] && existing[i].equipment) ? Object.assign({}, existing[i].equipment) : null
+            };
+        });
+    }
+}
+
+function saveEquipmentPreset(index) {
+    ensureEquipmentPresetsStructure();
+    if (index < 0 || index >= player.equipmentPresets.length) return;
+    const p = player.equipmentPresets[index];
+    p.equipment = Object.assign({}, player.equipment);
+    addLog(`📁💾 <b style="color:#00ffcc;">【装備セット保存】</b> 【${p.name}】に現在の装備構成を登録・保存しました！`);
+    renderEquipmentPresetsUI();
+    saveGame(false);
+}
+
+function renameEquipmentPreset(index) {
+    ensureEquipmentPresetsStructure();
+    if (index < 0 || index >= player.equipmentPresets.length) return;
+    const p = player.equipmentPresets[index];
+    const newName = prompt("装備セットの名前を変更してください:", p.name);
+    if (newName && newName.trim()) {
+        p.name = newName.trim();
+        renderEquipmentPresetsUI();
+        saveGame(false);
+    }
+}
+
+function clearEquipmentPreset(index) {
+    ensureEquipmentPresetsStructure();
+    if (index < 0 || index >= player.equipmentPresets.length) return;
+    const p = player.equipmentPresets[index];
+    p.equipment = null;
+    addLog(`📁🗑️ 【${p.name}】の登録データをクリアしました。`);
+    renderEquipmentPresetsUI();
+    saveGame(false);
+}
+
+function applyEquipmentPreset(index) {
+    ensureEquipmentPresetsStructure();
+    if (index < 0 || index >= player.equipmentPresets.length) return;
+    const p = player.equipmentPresets[index];
+    if (!p.equipment) {
+        addLog(`<span style="color:#ffaa00;">⚠️ 【${p.name}】にはまだ装備が登録されていません。「保存」ボタンで登録してください。</span>`);
+        return;
+    }
+
+    const slots = ['weapon', 'subWeapon', 'head', 'body', 'arm', 'leg', 'acc1', 'acc2', 'acc3'];
+    let changedCount = 0;
+    let missingItems = [];
+
+    // 各スロットごとに着替え処理
+    for (const slot of slots) {
+        const targetItem = p.equipment[slot] || null;
+        const currentItem = player.equipment[slot] || null;
+
+        if (targetItem === currentItem) continue; // すでに装備中
+
+        if (!targetItem) {
+            if (currentItem) {
+                unequipItem(slot);
+                changedCount++;
+            }
+            continue;
+        }
+
+        // targetItem をインベントリから探す
+        let foundInvKey = null;
+        if (player.inventory[targetItem] && player.inventory[targetItem] > 0) {
+            foundInvKey = targetItem;
+        } else {
+            const { baseName: targetBase } = typeof parseItemName === "function" ? parseItemName(targetItem) : { baseName: targetItem };
+            for (const invKey in player.inventory) {
+                if (player.inventory[invKey] > 0) {
+                    const { baseName: invBase } = typeof parseItemName === "function" ? parseItemName(invKey) : { baseName: invKey };
+                    if (invBase === targetBase) {
+                        foundInvKey = invKey;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (foundInvKey) {
+            if (currentItem) {
+                if (!player.inventory[currentItem]) player.inventory[currentItem] = 0;
+                player.inventory[currentItem]++;
+            }
+            player.inventory[foundInvKey]--;
+            if (player.inventory[foundInvKey] <= 0) delete player.inventory[foundInvKey];
+            player.equipment[slot] = foundInvKey;
+            changedCount++;
+        } else {
+            missingItems.push(targetItem);
+        }
+    }
+
+    calcStatus();
+    updateEquipmentDisplay(true);
+    updateInventoryDisplay(true);
+    renderEquipmentPresetsUI();
+
+    if (missingItems.length > 0) {
+        addLog(`📁⚠️ <b style="color:#ffaa44;">【一部未装備】</b> 手持ちにないため装着できませんでした: ${missingItems.join(', ')}`);
+    }
+    addLog(`📁⚡ <b style="color:#ffd700;">【一括着替え完了】</b> 装備セット<b>【${p.name}】</b>に着替えました！（${changedCount}箇所変更）`);
+    saveGame(false);
+}
+
+function renderEquipmentPresetsUI() {
+    const container = document.getElementById('equipment-presets-list');
+    if (!container) return;
+    ensureEquipmentPresetsStructure();
+
+    container.innerHTML = "";
+    player.equipmentPresets.forEach((p, idx) => {
+        const isRegistered = !!p.equipment;
+        let count = 0;
+        if (isRegistered) {
+            for (const s in p.equipment) {
+                if (p.equipment[s]) count++;
+            }
+        }
+
+        const box = document.createElement('div');
+        box.style.cssText = `background: ${isRegistered ? '#1a2736' : '#181e24'}; border: 1px solid ${isRegistered ? '#355c88' : '#333'}; border-radius: 6px; padding: 6px 8px; font-size: 12px; display: flex; flex-direction: column; justify-content: space-between;`;
+
+        box.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <b style="color: ${isRegistered ? '#79c0ff' : '#aaa'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95px;" title="${p.name}">${p.name}</b>
+                <button onclick="renameEquipmentPreset(${idx})" title="名前を変更" style="width: auto; padding: 1px 4px; font-size: 10px; margin: 0; background: transparent; border: none; color: #888; cursor: pointer;">✏️</button>
+            </div>
+            <div style="font-size: 11px; color: ${isRegistered ? '#88ff88' : '#666'}; margin-bottom: 6px;">
+                ${isRegistered ? `✅ ${count}部位登録` : `未登録`}
+            </div>
+            <div style="display: flex; gap: 4px;">
+                <button onclick="applyEquipmentPreset(${idx})" ${isRegistered ? '' : 'disabled'} style="flex: 2; padding: 4px 6px; font-size: 11px; font-weight: bold; margin: 0; border-radius: 4px; cursor: ${isRegistered ? 'pointer' : 'not-allowed'}; background: ${isRegistered ? '#238636' : '#2a2a2a'}; color: ${isRegistered ? '#fff' : '#666'}; border: 1px solid ${isRegistered ? '#2ea043' : '#444'};">
+                    ⚡ 装着
+                </button>
+                <button onclick="saveEquipmentPreset(${idx})" title="現在の装備構成をこのセットに上書き保存" style="flex: 1; padding: 4px 6px; font-size: 11px; margin: 0; border-radius: 4px; background: #2c4a6f; color: #fff; border: 1px solid #4a90e2; cursor: pointer;">
+                    💾 保存
+                </button>
+            </div>
+        `;
+        container.appendChild(box);
+    });
+}
+
 let _lastEquipmentCache = "";
 
 function updateEquipmentDisplay(force = false) {
+    renderEquipmentPresetsUI(); // マイセットUIの描画
+
     const eqList = document.getElementById('equipment-list');
     if (!eqList) return;
 
@@ -1932,6 +2226,22 @@ function updateEquipmentDisplay(force = false) {
     const statusTab = document.getElementById('tab-status');
     const isVisible = (statusTab && statusTab.classList.contains('active')) && (basicTab && basicTab.classList.contains('active'));
     if (!isVisible && !force) return;
+
+    // 発動中のシリーズセット効果バッジを更新
+    const setBox = document.getElementById('equipment-set-bonuses-box');
+    if (setBox) {
+        const activeSets = getActiveSetBonuses();
+        if (activeSets.length === 0) {
+            setBox.innerHTML = '';
+        } else {
+            setBox.innerHTML = activeSets.map(act => {
+                const maxTh = act.thresholds[act.thresholds.length - 1];
+                return `<span title="${act.thresholds.map(t => `${t.count}部位: ${t.desc}`).join(' / ')}" style="background: #1f2d3d; border: 1px solid ${act.series.color}; color: ${act.series.color}; padding: 2px 7px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: help;">
+                    ${act.series.icon} ${act.series.name} [${act.count}部位] (${maxTh.desc})
+                </span>`;
+            }).join('');
+        }
+    }
 
     const cacheKey = Object.entries(player.equipment || {}).map(([k, v]) => `${k}:${v}`).join('|');
     if (!force && _lastEquipmentCache === cacheKey) return;
@@ -2216,7 +2526,16 @@ function gainSkillExp(type, amount) {
             }
         }
     }
-    const equipSkillMult = 1.0 + equipSkillExpBonus;
+
+    // 🛡️ シリーズセット効果による熟練度ボーナス（求道修練、ラッコ等）
+    let setSkillExpBonus = 0;
+    if (typeof getEquipmentSetBonusValue === "function") {
+        setSkillExpBonus += getEquipmentSetBonusValue("allSkillExp");
+        if (type === "gathering") setSkillExpBonus += getEquipmentSetBonusValue("gatherSkillExp");
+        if (type === "trading") setSkillExpBonus += getEquipmentSetBonusValue("tradeSkillExp");
+    }
+
+    const equipSkillMult = 1.0 + equipSkillExpBonus + setSkillExpBonus;
 
     const safeExpMult = (typeof expMultiplier === 'number' && !isNaN(expMultiplier) && expMultiplier > 0) ? expMultiplier : 1.0;
     amount = Math.round(amount * safeExpMult * jobBonus * haloBonus * chainMult * trainingMult * prefixSkillBonus * masteryBonus * equipSkillMult * 10) / 10;
@@ -2294,6 +2613,12 @@ function gainExp(amount) {
     const jmEff = getCurrentJobMasteryEffects();
     if (jmEff.expBonus) expMult *= (1 + jmEff.expBonus / 100);
 
+    // 🛡️ シリーズセット効果による経験値ボーナス（求道修練等）
+    if (typeof getEquipmentSetBonusValue === "function") {
+        const setExpBonus = getEquipmentSetBonusValue("exp");
+        if (setExpBonus) expMult *= (1 + setExpBonus);
+    }
+
     const baseExp = Math.floor(amount * expMult);
 
     // PLV経験値
@@ -2308,13 +2633,14 @@ function gainExp(amount) {
         addLog(`<span style="color: #ffff00; font-weight: bold;">🆙 レベルアップ！ PLVが ${player.level} になった！(ステータスPt+5)</span>`);
     }
 
-    // JLV経験値（連戦チェイン・修練料理・求道者の称号ボーナスを乗算！）
+    // JLV経験値（連戦チェイン・修練料理・求道者の称号ボーナス・セット効果を乗算！）
     const chainMult = getBattleChainMultiplier();
     const trainingMult = (player.trainingBuff && player.trainingBuff.steps > 0) ? (player.trainingBuff.jlvExpMult || 1.0) : 1.0;
     const eqPfx = getEquippedPrefixExpBonuses();
     const prefixJlvBonus = 1.0 + (eqPfx.jlvBonus || 0);
+    const setJlvBonus = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("jlvExp") : 0;
 
-    const jlvExpGained = Math.floor(baseExp * chainMult * trainingMult * prefixJlvBonus);
+    const jlvExpGained = Math.floor(baseExp * chainMult * trainingMult * prefixJlvBonus * (1.0 + setJlvBonus));
 
     const jobData = ensureJobMasteryStructure(player.job);
     jobData.exp += jlvExpGained;
@@ -4493,6 +4819,8 @@ function applySavePayload(data, isManual = false) {
     player.equippedTitle = sp.equippedTitle || null;
     player.battleChain = sp.battleChain || 0;
     player.trainingBuff = sp.trainingBuff || { name: null, steps: 0, jlvExpMult: 1.0, skillExpMult: 1.0 };
+    player.equipmentPresets = Array.isArray(sp.equipmentPresets) ? sp.equipmentPresets : null;
+    ensureEquipmentPresetsStructure();
     for (const jobId in player.jobLevels) {
         ensureJobMasteryStructure(jobId);
     }
@@ -4535,6 +4863,7 @@ function applySavePayload(data, isManual = false) {
     updateForgeUI();
     if (typeof updateChainAndBuffUI === "function") updateChainAndBuffUI();
     if (typeof updateJobMasterySpecUI === "function") updateJobMasterySpecUI();
+    if (typeof renderEquipmentPresetsUI === "function") renderEquipmentPresetsUI();
 
     if (isManual) {
         addLog(`📂 <span style="color:#00ffcc; font-weight:bold;">セーブデータを読み込みました！ (PLV.${player.level} / ${player.job})</span>`);
@@ -4685,6 +5014,7 @@ function resetSaveData() {
     updateForgeUI();
     if (typeof updateChainAndBuffUI === "function") updateChainAndBuffUI();
     if (typeof updateJobMasterySpecUI === "function") updateJobMasterySpecUI();
+    if (typeof renderEquipmentPresetsUI === "function") renderEquipmentPresetsUI();
     if (typeof updateCompendiumUI === "function") updateCompendiumUI();
 
     if (btn) {
@@ -5446,12 +5776,13 @@ function nextStep(mode = 'auto') {
         const weaponType = getEquippedWeaponType();
         const jmEff = getCurrentJobMasteryEffects();
         
-        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、自律機巧の歯車輪は1.15倍、職能特化補正！）
+        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、自律機巧の歯車輪は1.15倍、セット効果、職能特化補正！）
         const triggerBoost = (mode === 'focus' ? 2.0 : 1.0)
             * (player.job === "星詠みの賢者" ? 1.3 : 1.0)
             * (player.job === "刀神" ? 1.25 : 1.0)
             * (hasEquippedSpecial("omega_overclock") ? 1.20 : 1.0)
             * (hasEquippedSpecial("automaton_core") ? 1.15 : 1.0)
+            * (1.0 + ((typeof getEquipmentSetBonusValue === "function" ? getEquipmentSetBonusValue("skillTrigger") : 0) / 100))
             * (1.0 + (jmEff.skillTrigger || 0) / 100);
         for (const skillId of player.activeSkills) {
             const skillData = ACTIVE_SKILLS[skillId];
@@ -5499,6 +5830,14 @@ function nextStep(mode = 'auto') {
             } else if (weaponType === 'magic') {
                 // 杖や魔術書による通常攻撃は MATK 依存になる！
                 dmgToEnemy = player.matk;
+            }
+
+            // 🔮 深淵魔術セット効果：全魔法スキル威力UP
+            if (isMagicAttack) {
+                const setMagicDmg = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("magicDmgPct") : 0;
+                if (setMagicDmg > 0) {
+                    dmgToEnemy = Math.floor(dmgToEnemy * (1 + setMagicDmg / 100));
+                }
             }
 
             // 手動「強襲攻撃 (rush)」はダメージ1.3倍＋強行熟練度ボーナス！
@@ -5559,6 +5898,8 @@ function nextStep(mode = 'auto') {
                 if (hasEquippedSpecial("cosmic_ring")) critMult += 0.5; // 星竜のコズミックリング: 会心倍率+0.5
                 critMult += ((jmEff.critDmg || 0) / 100);
                 critMult += ((skEffCombat.critDmg || 0) / 100);
+                const setCritDmg = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("critDmg") : 0;
+                if (setCritDmg > 0) critMult += (setCritDmg / 100);
 
                 // 刀術Lv.100奥義『神速抜刀 一刀両断』: 刀装備クリティカル時に倍率+0.60
                 if (weaponType === 'katana' && player.skills.katana.level >= 100) {
@@ -5635,6 +5976,15 @@ function nextStep(mode = 'auto') {
                 player.mp = Math.min(player.maxMp, player.mp + runeMp);
                 addLog(`✨ <span style="color: #ffd700;">【全知ルーンの恩寵】 HPが <b>${runeHp}</b>、MPが <b>${runeMp}</b> 活性回復した！</span>`);
             }
+            // 👼 天界セラフィムセット効果：毎行動時HP/MP 5%聖光自動回復
+            const setRegenPct = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("autoRegenPct") : 0;
+            if (setRegenPct > 0 && player.hp > 0) {
+                const regenHp = Math.max(1, Math.floor(player.maxHp * (setRegenPct / 100)));
+                const regenMp = Math.max(1, Math.floor(player.maxMp * (setRegenPct / 100)));
+                player.hp = Math.min(player.maxHp, player.hp + regenHp);
+                player.mp = Math.min(player.maxMp, player.mp + regenMp);
+                addLog(`👼✨ <span style="color: #ffd700;">【天界セラフィムの祝福】 HPが <b>${regenHp}</b>、MPが <b>${regenMp}</b> 聖光回復した！</span>`);
+            }
         } else {
             addLog(`💨 あなたの攻撃は外れた！(ミス)`);
         }
@@ -5688,25 +6038,26 @@ function nextStep(mode = 'auto') {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - shieldCut)));
             }
 
-            // エリア属性や装備の耐性・耐性熟練度による軽減
+            // エリア属性や装備の耐性・耐性熟練度・セット効果による軽減
             const resMultiplier = player.job === "神聖至高職" ? 1.3 : 1.0;
+            const setAllRes = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("allRes") : 0;
             if (currentAreaId === "area4") {
                 const eqStats = player.equipment.body ? getItemStats(player.equipment.body) : { fire_res: 0 };
                 const subStats = player.equipment.subWeapon ? getItemStats(player.equipment.subWeapon) : { fire_res: 0 };
-                const fireResPct = Math.min(80, (((player.skills?.fireRes?.level || 1) - 1) * 1 + (eqStats.fire_res || 0) + (subStats.fire_res || 0)) * resMultiplier);
+                const fireResPct = Math.min(80, (((player.skills?.fireRes?.level || 1) - 1) * 1 + (eqStats.fire_res || 0) + (subStats.fire_res || 0) + setAllRes) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - fireResPct / 100)));
             } else if (currentAreaId === "area3" || currentAreaId === "area6") {
-                const waterResPct = Math.min(80, (((player.skills?.waterRes?.level || 1) - 1) * 1) * resMultiplier);
+                const waterResPct = Math.min(80, (((player.skills?.waterRes?.level || 1) - 1) * 1 + setAllRes) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - waterResPct / 100)));
             } else if (currentAreaId === "area5" || currentAreaId === "area7") {
-                const windResPct = Math.min(80, (((player.skills?.windRes?.level || 1) - 1) * 1) * resMultiplier);
+                const windResPct = Math.min(80, (((player.skills?.windRes?.level || 1) - 1) * 1 + setAllRes) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - windResPct / 100)));
             } else if (currentAreaId === "area2" || currentAreaId === "area8") {
-                const earthResPct = Math.min(80, (((player.skills?.earthRes?.level || 1) - 1) * 1) * resMultiplier);
+                const earthResPct = Math.min(80, (((player.skills?.earthRes?.level || 1) - 1) * 1 + setAllRes) * resMultiplier);
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - earthResPct / 100)));
             }
             
-            // パッシブスキルの効果：竜の加護 / 不撓不屈 / パラディン特性 / 神域のオーラ / 大神の全知ルーン紋章 / 職能特化軽減
+            // パッシブスキルの効果：竜の加護 / 不撓不屈 / パラディン特性 / 神域のオーラ / 大神の全知ルーン紋章 / 職能特化軽減 / セット効果
             if (player.passiveSkills.includes("竜の加護")) {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * 0.7)); // 30%軽減
             }
@@ -5718,6 +6069,11 @@ function nextStep(mode = 'auto') {
             }
             if (hasEquippedSpecial("odin_rune")) {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * 0.85)); // 15%軽減
+            }
+            // 🛡️ 重鉄ゴーレムセット効果（被ダメ10%カット等）
+            const setDmgCut = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("dmgCutPct") : 0;
+            if (setDmgCut > 0) {
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - setDmgCut / 100)));
             }
             const jmCutEff = getCurrentJobMasteryEffects();
             if (jmCutEff.dmgCut > 0) {
@@ -5838,6 +6194,9 @@ window.addEventListener('DOMContentLoaded', () => {
         updateAchievementsUI();
         updateForgeUI();
         if (typeof updateCompendiumUI === "function") updateCompendiumUI();
+        if (typeof renderEquipmentPresetsUI === "function") renderEquipmentPresetsUI();
+    } else {
+        if (typeof renderEquipmentPresetsUI === "function") renderEquipmentPresetsUI();
     }
     setInterval(() => {
         saveGame(false);
