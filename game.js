@@ -179,6 +179,23 @@ function getItemStats(itemName) {
             stats.agi += eq.agi || 0;
             stats.luc += eq.luc || 0;
             stats.fire_res += eq.fire_res || 0;
+
+            // 🌿 成長型武具（熟練度スケーリング）
+            if (eq.scalingSkill && player && player.skills) {
+                const sLv = (player.skills[eq.scalingSkill]?.level || 1);
+                if (eq.scaleAtk) stats.atk += Math.floor(sLv * eq.scaleAtk);
+                if (eq.scaleMatk) stats.matk += Math.floor(sLv * eq.scaleMatk);
+                if (eq.scaleDef) stats.def += Math.floor(sLv * eq.scaleDef);
+                if (eq.scaleMdef) stats.mdef += Math.floor(sLv * eq.scaleMdef);
+                if (eq.scaleHp) stats.hp += Math.floor(sLv * eq.scaleHp);
+                if (eq.scaleCrit) stats.crit = (stats.crit || 0) + Math.floor(sLv * eq.scaleCrit);
+            }
+            if (eq.scalingTotalSkills && typeof getSkillTotalLevel === 'function') {
+                const tLv = getSkillTotalLevel();
+                const bonusAll = Math.floor(tLv / (eq.scalingDivisor || 50));
+                stats.str += bonusAll; stats.int += bonusAll; stats.vit += bonusAll;
+                stats.dex += bonusAll; stats.agi += bonusAll; stats.luc += bonusAll;
+            }
             break;
         }
     }
@@ -239,11 +256,12 @@ function getItemStats(itemName) {
 function getEquippedWeaponType(weaponNameOverride = null) {
     const wName = weaponNameOverride || player.equipment.weapon;
     if (!wName) return 'unarmed';
-    if (wName.includes('刀') || wName.includes('カタナ') || wName.includes('太刀') || wName.includes('銘刀') || wName.includes('村正') || wName.includes('斬鉄') || wName.includes('小太刀') || wName.includes('居合') || wName.includes('国綱') || wName.includes('正宗') || wName.includes('虎徹')) return 'katana';
+    if (wName.includes('ナックル') || wName.includes('拳') || wName.includes('クロー') || wName.includes('爪') || wName.includes('フィスト')) return 'unarmed';
+    if (wName.includes('刀') || wName.includes('カタナ') || wName.includes('太刀') || wName.includes('野太刀') || wName.includes('小太刀') || wName.includes('銘刀') || wName.includes('村正') || wName.includes('布都御魂') || wName.includes('斬鉄') || wName.includes('居合') || wName.includes('国綱') || wName.includes('正宗') || wName.includes('虎徹')) return 'katana';
     if (wName.includes('槍') || wName.includes('ランス') || wName.includes('スピア') || wName.includes('ロンギヌス') || wName.includes('ハルバード') || wName.includes('ヴァルキュリア') || wName.includes('グングニル')) return 'spear';
-    if (wName.includes('斧') || wName.includes('アクス')) return 'axe';
+    if (wName.includes('斧') || wName.includes('アクス') || wName.includes('トマホーク')) return 'axe';
     if (wName.includes('弓') || wName.includes('ボウ')) return 'bow';
-    if (wName.includes('銃') || wName.includes('ライフル') || wName.includes('砲') || wName.includes('キャノン')) return 'gun';
+    if (wName.includes('銃') || wName.includes('ライフル') || wName.includes('砲') || wName.includes('キャノン') || wName.includes('ブラスター')) return 'gun';
     if (wName.includes('杖') || wName.includes('魔術書') || wName.includes('魔導書') || wName.includes('グリモワール') || wName.includes('本') || wName.includes('ロッド')) return 'magic';
     return 'sword';
 }
@@ -1371,7 +1389,7 @@ function calcStatus() {
         player.dropRateBonus += 30;
     }
     if (player.job === "拳聖") {
-        const isFist = !player.equipment.weapon || player.equipment.weapon.includes("ナックル");
+        const isFist = !player.equipment.weapon || player.equipment.weapon.includes("ナックル") || player.equipment.weapon.includes("拳") || player.equipment.weapon.includes("クロー") || player.equipment.weapon.includes("爪") || player.equipment.weapon.includes("フィスト");
         player.atk = Math.floor(player.atk * (isFist ? 2.2 : 1.4));
         player.evasionRate = Math.min(60, player.evasionRate + 15);
     }
@@ -1399,16 +1417,18 @@ function calcStatus() {
         player.maxMp = Math.floor(player.maxMp * 1.25);
     }
     if (player.job === "刀神") {
-        const isSword = getEquippedWeaponType() === 'sword';
-        player.atk = Math.floor(player.atk * (isSword ? 1.6 : 1.3));
-        player.hitRate = Math.min(100, player.hitRate + 10);
+        const wType = getEquippedWeaponType();
+        const isKatana = wType === 'katana';
+        const isSword = wType === 'sword';
+        player.atk = Math.floor(player.atk * (isKatana ? 1.7 : (isSword ? 1.5 : 1.3)));
+        player.hitRate = Math.min(100, player.hitRate + 12);
     }
     if (player.job === "星詠みの賢者") {
         player.matk = Math.floor(player.matk * 1.4);
         player.dropRateBonus += 40;
     }
     if (player.job === "ゴッドハンド") {
-        const isFist = !player.equipment.weapon || player.equipment.weapon.includes("ナックル");
+        const isFist = !player.equipment.weapon || player.equipment.weapon.includes("ナックル") || player.equipment.weapon.includes("拳") || player.equipment.weapon.includes("クロー") || player.equipment.weapon.includes("爪") || player.equipment.weapon.includes("フィスト");
         player.atk = Math.floor(player.atk * (isFist ? 2.5 : 1.5));
         player.def = Math.floor(player.def * 1.4);
         player.mdef = Math.floor(player.mdef * 1.4);
@@ -1881,6 +1901,19 @@ function useItem(itemName, isAuto = false) {
         player.trainingBuff = { name: "🍷✨ 覚醒アムブロシア", steps: 150, jlvExpMult: 2.0, skillExpMult: 2.0 };
         addLog(`${autoPrefix}🍷✨ <b style="color:#ff66ff; font-size:14px;">[${itemName}]</b> を神聖に飲み干した！！ HP・MP全快！ さらに <b>150歩の間、JLV経験値＆全熟練度獲得量が +100% (2倍)</b> に覚醒上昇した！！`);
         gainSkillExp('cooking', 10);
+    } else if (itemName.includes("神々の万能祝宴薬")) {
+        player.hp = player.maxHp;
+        player.mp = player.maxMp;
+        const statAdd = 1;
+        player.stats.str += statAdd;
+        player.stats.int += statAdd;
+        player.stats.vit += statAdd;
+        player.stats.dex += statAdd;
+        player.stats.agi += statAdd;
+        player.stats.luc += statAdd;
+        player.trainingBuff = { name: "🎉 神々の万能祝宴", steps: 300, jlvExpMult: 1.75, skillExpMult: 1.75 };
+        addLog(`${autoPrefix}🎉✨ <b style="color:#ffd700; font-size:14px;">[${itemName}]</b> を堪能した！！ HP・MP全快！ 全基礎ステータスが永続+1！ さらに <b>300歩の間、JLV経験値＆全熟練度獲得量が +75% (1.75倍)</b> に上昇！`);
+        gainSkillExp('cooking', 8);
     }
     calcStatus();
     updateInventoryDisplay();
@@ -2165,7 +2198,28 @@ function gainSkillExp(type, amount) {
     const jmEff = getCurrentJobMasteryEffects();
     const masteryBonus = 1.0 + (jmEff.expBonus || 0) / 100;
 
-    amount = Math.round(amount * expMultiplier * jobBonus * haloBonus * chainMult * trainingMult * prefixSkillBonus * masteryBonus * 10) / 10;
+    // 🧪 装備アイテム自体の熟練度獲得量ブースト（研鑽の鉢金、求道工匠の手袋、修羅の戦脚、苦行僧のペンダント）
+    let equipSkillExpBonus = 0;
+    const allWeaponSkills = ['sword', 'katana', 'spear', 'axe', 'bow', 'gun', 'unarmed', 'magic'];
+    const allCraftSkills = ['blacksmith', 'handicraft', 'sewing', 'cooking', 'refining'];
+    for (const slot in player.equipment) {
+        const item = player.equipment[slot];
+        if (!item) continue;
+        const { baseName } = typeof parseItemName === "function" ? parseItemName(item) : { baseName: item };
+        for (const eqKey in EQUIPMENT) {
+            const eq = EQUIPMENT[eqKey];
+            if (eq.name === baseName || item.includes(eq.name)) {
+                if (eq.allSkillExpBonus) equipSkillExpBonus += eq.allSkillExpBonus;
+                if (eq.weaponSkillExpBonus && allWeaponSkills.includes(type)) equipSkillExpBonus += eq.weaponSkillExpBonus;
+                if (eq.craftSkillExpBonus && allCraftSkills.includes(type)) equipSkillExpBonus += eq.craftSkillExpBonus;
+                break;
+            }
+        }
+    }
+    const equipSkillMult = 1.0 + equipSkillExpBonus;
+
+    const safeExpMult = (typeof expMultiplier === 'number' && !isNaN(expMultiplier) && expMultiplier > 0) ? expMultiplier : 1.0;
+    amount = Math.round(amount * safeExpMult * jobBonus * haloBonus * chainMult * trainingMult * prefixSkillBonus * masteryBonus * equipSkillMult * 10) / 10;
     const skill = player.skills[type];
     if (!skill) return;
 
@@ -2844,8 +2898,44 @@ function updateCraftMenu() {
         addStatBadge('泥率', eq.drop_rate || eq.drop, '%', '#ffd700');
         addStatBadge('火耐性', eq.fire_res, '%', '#ff6666');
 
+        // 熟練度解放ロック判定（案B: 名匠クラフト）
+        let isSkillLocked = false;
+        let lockReasonText = "";
+        let masteryBadge = "";
+        if (recipe.reqSkill) {
+            const curLv = (player.skills[recipe.reqSkill.skill]?.level || 1);
+            if (curLv < recipe.reqSkill.level) {
+                isSkillLocked = true;
+                lockReasonText = `🔒 ${recipe.reqSkill.name}Lv.${recipe.reqSkill.level}で解放 (現在: Lv.${curLv})`;
+                masteryBadge = `<span style="background:#4a1e1e; border:1px solid #ff6666; color:#ff9999; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${lockReasonText}</span>`;
+            } else {
+                masteryBadge = `<span style="background:#1e3a2a; border:1px solid #2ea043; color:#7ee787; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">✨【${recipe.reqSkill.name}名匠】解放済</span>`;
+            }
+        }
+
+        // 成長型武具・修練装備バッジ（案C & 案D）
+        if (eq.scalingSkill) {
+            const skillNameMap = { unarmed: '素手', katana: '刀術', sword: '剣術', spear: '槍術', axe: '斧術', bow: '弓術', gun: '銃術', magic: '魔法' };
+            const sName = skillNameMap[eq.scalingSkill] || eq.scalingSkill;
+            const curSkillLv = (player.skills[eq.scalingSkill]?.level || 1);
+            statBadges.push(`<span style="background:#112f2f; border:1px solid #00ffcc; color:#00ffcc; padding:1px 5px; border-radius:3px; font-size:11px; font-weight:bold;">🌿成長型: ${sName}Lv.${curSkillLv}連動</span>`);
+        }
+        if (eq.scalingTotalSkills) {
+            const totLv = typeof getSkillTotalLevel === 'function' ? getSkillTotalLevel() : 0;
+            statBadges.push(`<span style="background:#112f2f; border:1px solid #00ffcc; color:#00ffcc; padding:1px 5px; border-radius:3px; font-size:11px; font-weight:bold;">🌿成長型: 全熟練度合計(${totLv})連動</span>`);
+        }
+        if (eq.allSkillExpBonus) {
+            statBadges.push(`<span style="background:#3a2e10; border:1px solid #ffd700; color:#ffd700; padding:1px 5px; border-radius:3px; font-size:11px; font-weight:bold;">🧪全熟練度+${Math.round(eq.allSkillExpBonus * 100)}%</span>`);
+        }
+        if (eq.weaponSkillExpBonus) {
+            statBadges.push(`<span style="background:#3a2e10; border:1px solid #ffd700; color:#ffd700; padding:1px 5px; border-radius:3px; font-size:11px; font-weight:bold;">⚔️武器熟練度+${Math.round(eq.weaponSkillExpBonus * 100)}%</span>`);
+        }
+        if (eq.craftSkillExpBonus) {
+            statBadges.push(`<span style="background:#3a2e10; border:1px solid #ffd700; color:#ffd700; padding:1px 5px; border-radius:3px; font-size:11px; font-weight:bold;">🔨製作熟練度+${Math.round(eq.craftSkillExpBonus * 100)}%</span>`);
+        }
+
         const card = document.createElement('div');
-        card.style.cssText = `display:flex; justify-content:space-between; align-items:center; gap:10px; background:#1e1e1e; border:1px solid ${cardBorder}; border-radius:6px; padding:10px 12px; transition:0.15s;`;
+        card.style.cssText = `display:flex; justify-content:space-between; align-items:center; gap:10px; background:#1e1e1e; border:1px solid ${isSkillLocked ? '#552222' : cardBorder}; border-radius:6px; padding:10px 12px; transition:0.15s;`;
 
         const leftDiv = document.createElement('div');
         leftDiv.style.cssText = 'flex:1; min-width:0;';
@@ -2853,6 +2943,7 @@ function updateCraftMenu() {
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:4px;">
                 <span style="font-size:15px; font-weight:bold; color:#fff;">${recipe.name}</span>
                 ${craftedBadge}
+                ${masteryBadge}
                 <span style="background:#283038; color:${slotInfo.color}; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${slotInfo.label}</span>
                 ${originBadge}
                 <span style="background:#2b2b2b; color:#aaa; padding:2px 6px; border-radius:4px; font-size:11px;">${skillLabel}</span>
@@ -2867,14 +2958,20 @@ function updateCraftMenu() {
         `;
 
         const rightDiv = document.createElement('div');
-        rightDiv.style.cssText = 'display:flex; flex-direction:column; align-items:flex-end; justify-content:center; min-width:120px;';
+        rightDiv.style.cssText = 'display:flex; flex-direction:column; align-items:flex-end; justify-content:center; min-width:130px;';
         const btn = document.createElement('button');
-        btn.style.cssText = `width:100%; padding:8px 10px; font-size:13px; font-weight:bold; margin-bottom:0; border-radius:5px; cursor:${maxCraft > 0 ? 'pointer' : 'not-allowed'}; background:${maxCraft > 0 ? '#238636' : '#333'}; color:${maxCraft > 0 ? '#fff' : '#777'}; border:1px solid ${maxCraft > 0 ? '#2ea043' : '#444'};`;
-        btn.disabled = (maxCraft === 0);
-        btn.innerHTML = maxCraft > 0
-            ? `🔨 製作する<br><span style="font-size:11px; font-weight:normal; color:#d2fedb;">(最大: ${maxCraft}個)</span>`
-            : `素材不足`;
-        btn.onclick = () => craftItem(recipeId);
+        if (isSkillLocked) {
+            btn.style.cssText = `width:100%; padding:8px 10px; font-size:11px; font-weight:bold; margin-bottom:0; border-radius:5px; cursor:not-allowed; background:#2d1b1b; color:#ff9999; border:1px solid #8b2c2c; line-height:1.3;`;
+            btn.disabled = true;
+            btn.innerHTML = `${lockReasonText}`;
+        } else {
+            btn.style.cssText = `width:100%; padding:8px 10px; font-size:13px; font-weight:bold; margin-bottom:0; border-radius:5px; cursor:${maxCraft > 0 ? 'pointer' : 'not-allowed'}; background:${maxCraft > 0 ? '#238636' : '#333'}; color:${maxCraft > 0 ? '#fff' : '#777'}; border:1px solid ${maxCraft > 0 ? '#2ea043' : '#444'};`;
+            btn.disabled = (maxCraft === 0);
+            btn.innerHTML = maxCraft > 0
+                ? `🔨 製作する<br><span style="font-size:11px; font-weight:normal; color:#d2fedb;">(最大: ${maxCraft}個)</span>`
+                : `素材不足`;
+            btn.onclick = () => craftItem(recipeId);
+        }
         rightDiv.appendChild(btn);
 
         card.appendChild(leftDiv);
@@ -2967,6 +3064,14 @@ function craftItem(recipeId) {
 
     const recipe = RECIPES[recipeId];
     if (!recipe) return;
+
+    if (recipe.reqSkill) {
+        const curLv = (player.skills[recipe.reqSkill.skill]?.level || 1);
+        if (curLv < recipe.reqSkill.level) {
+            addLog(`<span style='color: #ff6666;'>⚠️ 【${recipe.reqSkill.name}熟練度】が Lv.${recipe.reqSkill.level} に達していないため製作できません。（現在: Lv.${curLv}）</span>`);
+            return;
+        }
+    }
 
     let successCount = 0;
     let craftedItems = {};
@@ -5059,7 +5164,7 @@ function nextStep(mode = 'auto') {
 
     // ピンチ時（HP35%以下）にインベントリの回復アイテムを自動使用
     if (player.hp <= player.maxHp * 0.35) {
-        const autoHealTargets = ["特製薬草スープ", "妖精の蜜酒", "沼地キノコの魔力シチュー", "マンドラゴラ絶叫薬", "上級薬草ポーション"];
+        const autoHealTargets = ["特製薬草スープ", "妖精の蜜酒", "沼地キノコの魔力シチュー", "マンドラゴラ絶叫薬", "上級薬草ポーション", "神々の万能祝宴薬"];
         for (const itemName of Object.keys(player.inventory)) {
             if (player.inventory[itemName] > 0 && autoHealTargets.some(t => itemName.includes(t))) {
                 useItem(itemName, true);
@@ -5341,11 +5446,12 @@ function nextStep(mode = 'auto') {
         const weaponType = getEquippedWeaponType();
         const jmEff = getCurrentJobMasteryEffects();
         
-        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、職能特化補正！）
+        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、自律機巧の歯車輪は1.15倍、職能特化補正！）
         const triggerBoost = (mode === 'focus' ? 2.0 : 1.0)
             * (player.job === "星詠みの賢者" ? 1.3 : 1.0)
             * (player.job === "刀神" ? 1.25 : 1.0)
             * (hasEquippedSpecial("omega_overclock") ? 1.20 : 1.0)
+            * (hasEquippedSpecial("automaton_core") ? 1.15 : 1.0)
             * (1.0 + (jmEff.skillTrigger || 0) / 100);
         for (const skillId of player.activeSkills) {
             const skillData = ACTIVE_SKILLS[skillId];

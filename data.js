@@ -1127,6 +1127,194 @@ const RECIPES = {
         category: "handicraft", area: "area8", origin: "ultrarare",
         cost: { "万象支配のヴァルハラ王冠": 1, "神槍グングニルの穂先": 1, "原初のルーン文字盤": 2 },
         result: "valhalla_sovereign_crown"
+    },
+
+    // ==========================================
+    // ■ 🥋 ナックル・格闘爪・拳甲（素手熟練度・拳聖・ゴッドハンド向け）
+    // ==========================================
+    beast_claw: {
+        name: "野獣の獣爪ナックル",
+        category: "handicraft", area: "area1", origin: "normal",
+        cost: { "ラッコの毛皮": 4, "丈夫な枝": 2 },
+        result: "beast_claw"
+    },
+    iron_knuckle: {
+        name: "重鉄のアイアンナックル",
+        category: "blacksmith", area: "area2", origin: "normal",
+        cost: { "鉄鉱石": 5, "ロックゴーレムの破片": 2 },
+        result: "iron_knuckle"
+    },
+    hydra_fang_claw: {
+        name: "毒蛇咬のポイズンクロー",
+        category: "handicraft", area: "area3", origin: "normal",
+        cost: { "猛毒の触手": 3, "丈夫な枝": 4 },
+        result: "hydra_fang_claw"
+    },
+    cyber_piston_knuckle: {
+        name: "機巧ピストンナックル",
+        category: "handicraft", area: "area5", origin: "normal",
+        cost: { "蒸気機関パーツ": 3, "精密機械ギア": 2, "オメガ合金フレーム": 1 },
+        result: "cyber_piston_knuckle"
+    },
+    cosmic_fist: {
+        name: "銀河星砕きの拳甲",
+        category: "blacksmith", area: "area7", origin: "normal",
+        cost: { "星屑銀のインゴット": 4, "ギャラクシーコア": 2, "星霊のオーラ結晶": 1 },
+        result: "cosmic_fist"
+    },
+    vajra_god_knuckle: {
+        name: "金剛神覇のゴッドナックル",
+        category: "blacksmith", area: "area8", origin: "normal",
+        cost: { "神鉄ヴァルハラインゴット": 5, "世界樹の神枝": 2, "終焉黒竜の逆鱗": 1 },
+        result: "vajra_god_knuckle"
+    },
+
+    // ==========================================
+    // ■ 🗡️ 刀（刀術熟練度・刀神向け）
+    // ==========================================
+    bamboo_katana: {
+        name: "竹光の小太刀",
+        category: "handicraft", area: "area1", origin: "normal",
+        cost: { "丈夫な枝": 5, "ラッコの毛皮": 2 },
+        result: "bamboo_katana"
+    },
+    iron_katana: {
+        name: "打刀・鉄影",
+        category: "blacksmith", area: "area2", origin: "normal",
+        cost: { "鉄鉱石": 5, "綺麗な石": 3 },
+        result: "iron_katana"
+    },
+    venom_nodachi: {
+        name: "沼蛇の野太刀",
+        category: "blacksmith", area: "area3", origin: "normal",
+        cost: { "猛毒の触手": 3, "鉄鉱石": 4 },
+        result: "venom_nodachi"
+    },
+    divine_katana: {
+        name: "天照の神刀・布都御魂",
+        category: "blacksmith", area: "area6", origin: "normal",
+        cost: { "セラフィムメタル": 4, "天使の光羽": 3, "神聖エッセンス": 2 },
+        result: "divine_katana"
+    },
+    muramasa_katana: {
+        name: "妖刀・村正",
+        category: "blacksmith", area: "area8", origin: "normal",
+        cost: { "神鉄ヴァルハラインゴット": 4, "冥界の呪縛鎖": 2, "世界樹の神枝": 2 },
+        result: "muramasa_katana"
+    },
+
+    // ==========================================
+    // ■ 🪓 斧・弓・銃の補完
+    // ==========================================
+    iron_battle_axe: {
+        name: "重鉄のトマホーク",
+        category: "blacksmith", area: "area2", origin: "normal",
+        cost: { "鉄鉱石": 6, "ロックゴーレムの破片": 2 },
+        result: "iron_battle_axe"
+    },
+    flame_heavy_bow: {
+        name: "紅蓮の火竜弓",
+        category: "handicraft", area: "area4", origin: "normal",
+        cost: { "燃える皮膚": 4, "溶岩の甲羅": 2, "猛毒の触手": 2 },
+        result: "flame_heavy_bow"
+    },
+    supernova_plasma_gun: {
+        name: "超新星プラズマブラスター",
+        category: "handicraft", area: "area7", origin: "normal",
+        cost: { "星屑銀のインゴット": 4, "精密機械ギア": 3, "ギャラクシーコア": 2 },
+        result: "supernova_plasma_gun"
+    },
+
+    // ==========================================
+    // ■ 🌟【案B】熟練度レベル到達で解放される名匠クラフト武具
+    // ==========================================
+    masterwork_blade: {
+        name: "百錬の名匠鋼剣",
+        category: "blacksmith", area: "area2", origin: "normal",
+        cost: { "鉄鉱石": 8, "綺麗な石": 4 },
+        reqSkill: { skill: "blacksmith", level: 20, name: "鍛冶" },
+        result: "masterwork_blade"
+    },
+    wind_spirit_garb: {
+        name: "風精霊の軽装羽織",
+        category: "sewing", area: "area3", origin: "normal",
+        cost: { "魔女の呪詛布": 3, "ラッコの毛皮": 5 },
+        reqSkill: { skill: "sewing", level: 25, name: "裁縫" },
+        result: "wind_spirit_garb"
+    },
+    automaton_core_ring: {
+        name: "自律機巧の歯車輪",
+        category: "handicraft", area: "area5", origin: "normal",
+        cost: { "精密機械ギア": 4, "蒸気機関パーツ": 2 },
+        reqSkill: { skill: "handicraft", level: 30, name: "工作" },
+        result: "automaton_core_ring"
+    },
+    zenith_aegis_shield: {
+        name: "金剛不壊の鍛錬大盾",
+        category: "blacksmith", area: "area4", origin: "normal",
+        cost: { "万年炉心の燃え殻": 2, "溶岩の甲羅": 4, "鉄鉱石": 6 },
+        reqSkill: { skill: "refining", level: 30, name: "鍛錬" },
+        result: "zenith_aegis_shield"
+    },
+    ambrosia_feast: {
+        name: "神々の万能祝宴薬",
+        category: "cooking", area: "area6", origin: "normal",
+        cost: { "神聖エッセンス": 2, "妖精の蜜酒": 1, "雑草": 5 },
+        reqSkill: { skill: "cooking", level: 35, name: "調理" },
+        result: "ambrosia_feast"
+    },
+
+    // ==========================================
+    // ■ 🌿【案C】熟練度に応じて強くなる成長型・熟練武具
+    // ==========================================
+    asura_fist: {
+        name: "修羅の闘気拳甲",
+        category: "blacksmith", area: "area3", origin: "normal",
+        cost: { "猛毒の触手": 3, "鉄鉱石": 6, "スライムの核": 3 },
+        reqSkill: { skill: "unarmed", level: 25, name: "素手" },
+        result: "asura_fist"
+    },
+    unnamed_odachi: {
+        name: "無銘の古太刀",
+        category: "blacksmith", area: "area2", origin: "normal",
+        cost: { "鉄鉱石": 6, "星鉄の欠片": 2, "綺麗な石": 3 },
+        reqSkill: { skill: "katana", level: 25, name: "刀術" },
+        result: "unnamed_odachi"
+    },
+    grandmaster_ring: {
+        name: "百錬の求道指輪",
+        category: "handicraft", area: "area1", origin: "normal",
+        cost: { "スライムの核": 5, "綺麗な石": 3, "ロイヤルゼリー": 1 },
+        reqSkill: { skill: "refining", level: 15, name: "鍛錬" },
+        result: "grandmaster_ring"
+    },
+
+    // ==========================================
+    // ■ 🧪【案D】熟練度育成を加速させる修練・研鑽シリーズ装備
+    // ==========================================
+    training_headband: {
+        name: "研鑽の鉢金",
+        category: "handicraft", area: "area1", origin: "normal",
+        cost: { "ラッコの毛皮": 3, "丈夫な枝": 3 },
+        result: "training_headband"
+    },
+    artisan_gloves: {
+        name: "求道工匠の手袋",
+        category: "sewing", area: "area2", origin: "normal",
+        cost: { "ラッコの毛皮": 4, "鉄鉱石": 2 },
+        result: "artisan_gloves"
+    },
+    warrior_treads: {
+        name: "修羅の戦脚",
+        category: "sewing", area: "area3", origin: "normal",
+        cost: { "魔女の呪詛布": 2, "ラッコの毛皮": 4 },
+        result: "warrior_treads"
+    },
+    ascetic_pendant: {
+        name: "苦行僧のペンダント",
+        category: "handicraft", area: "area4", origin: "normal",
+        cost: { "万年炉心の燃え殻": 1, "炎のルビーリング": 1 },
+        result: "ascetic_pendant"
     }
 };
 
@@ -1778,6 +1966,168 @@ const EQUIPMENT = {
         name: "万象支配のヴァルハラ神冠", slot: "head",
         hp: 350, mp: 220, atk: 65, matk: 65, def: 75, mdef: 75, str: 22, int: 22, vit: 22, dex: 22, agi: 22, luc: 25, hit: 15, eva: 15, drop_rate: 25,
         description: "【🌈BOSS激レア・エリア8】最高神オーディンの王冠を昇華させた支配者の神冠。全能力を極限まで高める。"
+    },
+
+    // ==========================================
+    // ■ 🥋【案A】ナックル・格闘爪・拳甲（素手熟練度・拳聖・ゴッドハンド向け）
+    // ==========================================
+    beast_claw: {
+        name: "野獣の獣爪ナックル", slot: "weapon",
+        hp: 5, atk: 6, agi: 2, crit: 2,
+        description: "野獣の鋭い爪を仕込んだ格闘爪。素手熟練度で威力が上昇する。ATK+6、AGI+2、会心率+2%。"
+    },
+    iron_knuckle: {
+        name: "重鉄のアイアンナックル", slot: "weapon",
+        hp: 10, atk: 15, def: 4, vit: 2,
+        description: "ズシリと重い鉄製のナックル。拳で装甲を叩き割る。ATK+15、DEF+4、VIT+2。"
+    },
+    hydra_fang_claw: {
+        name: "毒蛇咬のポイズンクロー", slot: "weapon",
+        hp: 15, atk: 30, agi: 4, hit: 3,
+        description: "ハイドラの猛毒牙を加工した鉤爪。ATK+30、AGI+4、命中率+3%。"
+    },
+    cyber_piston_knuckle: {
+        name: "機巧ピストンナックル", slot: "weapon",
+        hp: 35, atk: 80, matk: 32, dex: 8,
+        description: "蒸気機関のピストン駆動で打撃を撃ち込む機械拳甲。ATK+80、MATK+32、DEX+8。"
+    },
+    cosmic_fist: {
+        name: "銀河星砕きの拳甲", slot: "weapon",
+        hp: 80, atk: 170, str: 16, vit: 14, crit: 5,
+        description: "隕石の如き質量で星をも穿つ剛拳甲。ATK+170、STR+16、VIT+14、会心率+5%。"
+    },
+    vajra_god_knuckle: {
+        name: "金剛神覇のゴッドナックル", slot: "weapon",
+        hp: 150, atk: 265, def: 32, str: 26, vit: 26,
+        description: "神話の武神が振るった至高の神拳。一撃が大地を割る。ATK+265、DEF+32、STR+26、VIT+26。"
+    },
+
+    // ==========================================
+    // ■ 🗡️【案A】刀（刀術熟練度・刀神向け）
+    // ==========================================
+    bamboo_katana: {
+        name: "竹光の小太刀", slot: "weapon",
+        hp: 4, atk: 7, dex: 2, crit: 3,
+        description: "堅い若竹を削り出した小太刀。扱いやすく急所を突きやすい。ATK+7、DEX+2、会心率+3%。"
+    },
+    iron_katana: {
+        name: "打刀・鉄影", slot: "weapon",
+        hp: 8, atk: 18, dex: 3, agi: 2, crit: 4,
+        description: "丹念に鍛え上げられた打刀。鋭い刃筋が敵を断つ。ATK+18、DEX+3、AGI+2、会心率+4%。"
+    },
+    venom_nodachi: {
+        name: "沼蛇の野太刀", slot: "weapon",
+        hp: 12, atk: 36, dex: 4, crit: 5,
+        description: "長大な刃渡りを持つ野太刀。一振りで敵を薙ぎ払う。ATK+36、DEX+4、会心率+5%。"
+    },
+    divine_katana: {
+        name: "天照の神刀・布都御魂", slot: "weapon",
+        hp: 60, atk: 135, matk: 55, dex: 14, crit: 8,
+        description: "神聖なる光を放つ伝説の霊刀。邪悪を光刃の如く切り裂く。ATK+135、MATK+55、DEX+14、会心率+8%。"
+    },
+    muramasa_katana: {
+        name: "妖刀・村正", slot: "weapon",
+        hp: 100, atk: 280, dex: 28, crit: 15,
+        description: "血を求める呪われた至高の銘刀。斬れ味は神域に達する。ATK+280、DEX+28、会心率+15%。"
+    },
+
+    // ==========================================
+    // ■ 🪓【案A】斧・弓・銃の補完
+    // ==========================================
+    iron_battle_axe: {
+        name: "重鉄のトマホーク", slot: "weapon",
+        hp: 15, atk: 24, str: 5, vit: 2,
+        description: "重厚な鉄塊を打ち伸ばした戦闘斧。一撃が極めて重い。ATK+24、STR+5、VIT+2。"
+    },
+    flame_heavy_bow: {
+        name: "紅蓮の火竜弓", slot: "weapon",
+        hp: 25, atk: 60, dex: 9, hit: 8, fire_res: 5,
+        description: "火竜の腱を張り上げた大弓。放たれた矢は炎を纏って飛ぶ。ATK+60、DEX+9、命中+8%、火耐性+5%。"
+    },
+    supernova_plasma_gun: {
+        name: "超新星プラズマブラスター", slot: "weapon",
+        hp: 70, atk: 165, matk: 75, dex: 16, hit: 10,
+        description: "星の核エネルギーを収束発射する超重兵器。ATK+165、MATK+75、DEX+16、命中+10%。"
+    },
+
+    // ==========================================
+    // ■ 🌟【案B】熟練度レベル到達で解放される名匠クラフト武具
+    // ==========================================
+    masterwork_blade: {
+        name: "百錬の名匠鋼剣", slot: "weapon",
+        hp: 20, atk: 26, str: 4, dex: 4, hit: 5,
+        description: "【鍛冶Lv.20名匠】職人が百回以上打ち鍛えた不純物のない鋼剣。ATK+26、STR+4、DEX+4、命中+5%。"
+    },
+    wind_spirit_garb: {
+        name: "風精霊の軽装羽織", slot: "body",
+        hp: 45, def: 14, mdef: 18, agi: 8, eva: 5,
+        description: "【裁縫Lv.25名匠】風精霊の加護が織り込まれた羽織。HP+45、DEF+14、MDEF+18、AGI+8、回避+5%。"
+    },
+    automaton_core_ring: {
+        name: "自律機巧の歯車輪", slot: "accessory",
+        hp: 20, mp: 35, int: 8, dex: 8,
+        specialId: "automaton_core",
+        description: "【工作Lv.30名匠】超小型ゼンマイ機構内蔵の指輪。スキル発動率+5%、HP+20、MP+35、INT/DEX+8。"
+    },
+    zenith_aegis_shield: {
+        name: "金剛不壊の鍛錬大盾", slot: "sub_weapon",
+        hp: 120, def: 50, mdef: 28, vit: 12,
+        description: "【鍛錬Lv.30名匠】幾度もの鍛錬を経て極限まで密度を高めた大盾。HP+120、DEF+50、MDEF+28、VIT+12。"
+    },
+    ambrosia_feast: {
+        name: "神々の万能祝宴薬", slot: "usable",
+        hp: 0,
+        description: "【調理Lv.35名匠】HP・MP全回復＆全基礎能力+1(永久)！さらに300歩の間ジョブEXP＆全熟練度獲得量+75%！"
+    },
+
+    // ==========================================
+    // ■ 🌿【案C】熟練度に応じて強くなる成長型・熟練武具
+    // ==========================================
+    asura_fist: {
+        name: "修羅の闘気拳甲", slot: "weapon",
+        hp: 15, atk: 22, crit: 5,
+        scalingSkill: "unarmed", scaleAtk: 1.2, scaleDef: 0.4,
+        description: "【成長型武具】素手熟練度に応じてATK(+1.2/Lv)とDEF(+0.4/Lv)がリアルタイム成長！基礎ATK+22、会心率+5%。"
+    },
+    unnamed_odachi: {
+        name: "無銘の古太刀", slot: "weapon",
+        hp: 10, atk: 20, dex: 3,
+        scalingSkill: "katana", scaleAtk: 1.2, scaleCrit: 0.1,
+        description: "【成長型武具】刀術熟練度に応じてATK(+1.2/Lv)と会心率(+0.1%/Lv)がリアルタイム成長！基礎ATK+20、DEX+3。"
+    },
+    grandmaster_ring: {
+        name: "百錬の求道指輪", slot: "accessory",
+        hp: 30, mp: 20,
+        scalingTotalSkills: true, scalingDivisor: 50,
+        description: "【成長型武具】全30スキルの合計熟練度50ごとに全基礎能力(STR/INT/VIT/DEX/AGI/LUC)が+1永続上昇！HP+30、MP+20。"
+    },
+
+    // ==========================================
+    // ■ 🧪【案D】熟練度育成を加速させる修練・研鑽シリーズ装備
+    // ==========================================
+    training_headband: {
+        name: "研鑽の鉢金", slot: "head",
+        hp: 15, def: 4,
+        allSkillExpBonus: 0.20,
+        description: "【修練装備】日々の鍛錬を効率化する鉢金。全スキルの熟練度獲得量 +20%、HP+15、DEF+4。"
+    },
+    artisan_gloves: {
+        name: "求道工匠の手袋", slot: "arm",
+        def: 8, dex: 5,
+        craftSkillExpBonus: 0.35,
+        description: "【修練装備】職人の手仕事を支える手袋。クラフト熟練度（鍛冶・裁縫・工作・鍛錬・調理）獲得量 +35%、DEF+8、DEX+5。"
+    },
+    warrior_treads: {
+        name: "修羅の戦脚", slot: "leg",
+        hp: 30, def: 12, agi: 6,
+        weaponSkillExpBonus: 0.30,
+        description: "【修練装備】実戦での武芸修得を加速させる脚具。全武器熟練度獲得量 +30%、HP+30、DEF+12、AGI+6。"
+    },
+    ascetic_pendant: {
+        name: "苦行僧のペンダント", slot: "accessory",
+        hp: 50, mp: 30,
+        allSkillExpBonus: 0.25,
+        description: "【修練装備】己を厳しく律する首飾り。全スキルの熟練度獲得量 +25%、HP+50、MP+30。"
     }
 }; // 最後をしっかり閉じる
 
