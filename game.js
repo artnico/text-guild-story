@@ -605,11 +605,85 @@ function getSkillMilestoneEffects() {
                 if (m.name === "黄金の嗅覚") eff.dropRate += 15;
                 // クラフト
                 if (m.name === "極上の一皿") eff.flatHp += 50;
+                // 🌟 Lv.150 / Lv.200 極限マイルストーンボーナス
+                if (m.extremeBonus) {
+                    for (const k in m.extremeBonus) {
+                        if (eff[k] !== undefined) eff[k] += m.extremeBonus[k];
+                    }
+                }
             }
         }
     }
 
     return eff;
+}
+
+// 🔗 複合シナジー奥義の効果集計
+function getSkillSynergyEffects() {
+    ensureSkillsStructure();
+    const res = {
+        allStats: 0, hpPct: 0, atkPct: 0, matkPct: 0, defPct: 0, mdefPct: 0,
+        critRate: 0, critDmg: 0, hitRate: 0, evaRate: 0, dropRate: 0,
+        skillRate: 0, defPierce: 0, dmgCutPct: 0, hpRegenPct: 0, mpRegenPct: 0, expPct: 0,
+        unlockedList: []
+    };
+    if (typeof SKILL_SYNERGY_ARTS === "undefined") return res;
+    for (const art of SKILL_SYNERGY_ARTS) {
+        if (art.check(player.skills)) {
+            res.unlockedList.push(art);
+            for (const k in art.bonus) {
+                if (res[k] !== undefined) res[k] += art.bonus[k];
+            }
+        }
+    }
+    return res;
+}
+
+let _synergyPanelExpanded = false;
+function toggleSkillSynergyPanel() {
+    _synergyPanelExpanded = !_synergyPanelExpanded;
+    updateSkillSynergyUI();
+}
+
+function updateSkillSynergyUI() {
+    const panel = document.getElementById('skill-synergy-panel');
+    if (!panel || typeof SKILL_SYNERGY_ARTS === "undefined") return;
+    ensureSkillsStructure();
+    const syn = getSkillSynergyEffects();
+    const total = SKILL_SYNERGY_ARTS.length;
+    const unlockedCount = syn.unlockedList.length;
+
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSkillSynergyPanel()">
+            <b style="color: #79c0ff;">🔗 複合シナジー奥義 <span style="color: #ffd700;">(${unlockedCount} / ${total} 解放)</span></b>
+            <span style="font-size: 11px; color: #aaa;">${_synergyPanelExpanded ? '▲ 閉じる' : '▼ 一覧・条件を見る'}</span>
+        </div>
+    `;
+
+    if (unlockedCount > 0 && !_synergyPanelExpanded) {
+        html += `<div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px;">` +
+            syn.unlockedList.map(a => `<span title="${a.desc}" style="background:#1c3045; border:1px solid #4a90e2; color:#a5d6ff; padding:1px 6px; border-radius:10px; font-size:11px;">${a.icon} ${a.name}</span>`).join('') +
+            `</div>`;
+    }
+
+    if (_synergyPanelExpanded) {
+        html += `<div style="margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px;">`;
+        for (const art of SKILL_SYNERGY_ARTS) {
+            const isUnlocked = art.check(player.skills);
+            html += `
+                <div style="background: ${isUnlocked ? '#1a2d3a' : '#14181e'}; border: 1px solid ${isUnlocked ? '#4a90e2' : '#333'}; border-radius: 5px; padding: 6px 8px;">
+                    <div style="font-weight: bold; color: ${isUnlocked ? '#ffd700' : '#777'}; margin-bottom: 2px;">
+                        ${isUnlocked ? '✅' : '🔒'} ${art.icon} ${art.name}
+                    </div>
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 2px;">条件: ${art.condDesc}</div>
+                    <div style="font-size: 11px; color: ${isUnlocked ? '#88ff88' : '#666'};">${art.desc}</div>
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+
+    panel.innerHTML = html;
 }
 
 // 🌌 総合熟練度共鳴インジケーターUIの更新
@@ -872,6 +946,7 @@ function getCurrentJobMasteryEffects() {
             case "dropLuc": effects.drop += s.drop * pts; effects.lucPct += s.luc * pts; break;
             case "strHp": effects.strPct += s.str * pts; effects.hpPct += s.hpPct * pts; break;
             case "dropCut": effects.drop += s.drop * pts; effects.dmgCut = Math.min(30, effects.dmgCut + s.cut * pts); break;
+            case "strPierce": effects.strPct += s.str * pts; effects.defPierce = Math.min(s.max || 50, effects.defPierce + s.pierce * pts); break;
         }
     }
     return effects;
@@ -958,6 +1033,7 @@ function formatMasteryEffectText(spec, pts) {
         case "dropLuc": return `泥率 +${(spec.drop * pts).toFixed(1)}%, LUC +${(spec.luc * pts).toFixed(1)}%`;
         case "strHp": return `STR +${(spec.str * pts).toFixed(1)}%, HP +${(spec.hpPct * pts).toFixed(1)}%`;
         case "dropCut": return `泥率 +${(spec.drop * pts).toFixed(1)}%, 被ダメ軽減 +${Math.min(30, (spec.cut * pts)).toFixed(1)}%`;
+        case "strPierce": return `STR +${(spec.str * pts).toFixed(1)}%, 防御無視 +${Math.min(spec.max || 50, (spec.pierce * pts)).toFixed(1)}%`;
         default: return `+${pts}`;
     }
 }
@@ -1297,17 +1373,25 @@ function calcStatus() {
     // ✨ 熟練度マイルストーン奥義の累積効果
     const skMilestone = getSkillMilestoneEffects();
 
+    // 🔗 複合シナジー奥義の累積効果
+    const skSynergy = typeof getSkillSynergyEffects === "function" ? getSkillSynergyEffects() : {};
+
+    // 🔀 サブジョブ（副職継承）効果
+    const subJob = typeof getSubJobBonus === "function" ? getSubJobBonus() : {};
+
     // ジョブ特化ステータス倍率の乗算
     stMult.str *= (1 + (mastery.strPct || 0) / 100);
     stMult.int *= (1 + (mastery.intPct || 0) / 100);
     stMult.vit *= (1 + (mastery.vitPct || 0) / 100);
     stMult.dex *= (1 + (mastery.dexPct || 0) / 100);
-    stMult.agi *= (1 + (mastery.agiPct || 0) / 100);
+    stMult.agi *= (1 + (mastery.agiPct || 0) / 100) * (1 + (subJob.agiMult || 0));
     stMult.luc *= (1 + (mastery.lucPct || 0) / 100);
 
-    // マイルストーン奥義による乗算補正
+    // マイルストーン奥義・シナジー奥義による乗算補正
     if (skMilestone.atkPct) stMult.atk *= (1 + skMilestone.atkPct / 100);
     if (skMilestone.matkPct) stMult.matk *= (1 + skMilestone.matkPct / 100);
+    if (skSynergy.atkPct) stMult.atk *= (1 + skSynergy.atkPct / 100);
+    if (skSynergy.matkPct) stMult.matk *= (1 + skSynergy.matkPct / 100);
 
     // 📜 ギルドランク恒久ボーナス
     const guildRank = getCurrentGuildRank();
@@ -1319,8 +1403,8 @@ function calcStatus() {
     const tBonus = titleObj?.bonus || {};
     const titleAllStats = tBonus.allStats || 0;
 
-    // 基礎ステータスに装備＋図鑑コレクション＋ギルドランク＋二つ名＋共鳴＋ジョブ特化＋熟練度共鳴＋鍛錬固定値を加算
-    const totalAllStatBonus = (compBonus.flatAllStats || 0) + (rankAllStats || 0) + (titleAllStats || 0) + (resonance.allStats || 0) + (mastery.allStats || 0) + (skillResBonus.allStats || 0) + (bonusAllStatFromRefining || 0);
+    // 基礎ステータスに装備＋図鑑コレクション＋ギルドランク＋二つ名＋共鳴＋ジョブ特化＋熟練度共鳴＋鍛錬固定値＋シナジー＋サブジョブを加算
+    const totalAllStatBonus = (compBonus.flatAllStats || 0) + (rankAllStats || 0) + (titleAllStats || 0) + (resonance.allStats || 0) + (mastery.allStats || 0) + (skillResBonus.allStats || 0) + (bonusAllStatFromRefining || 0) + (skSynergy.allStats || 0) + (subJob.allStats || 0);
     const totalStrBonus = totalAllStatBonus + (tBonus.str || 0);
     const totalIntBonus = totalAllStatBonus + (tBonus.int || 0);
     const totalVitBonus = totalAllStatBonus + (tBonus.vit || 0);
@@ -1345,9 +1429,10 @@ function calcStatus() {
     const prevMaxHp = player.maxHp;
     const prevMaxMp = player.maxMp;
 
-    // 仕様書⑥に基づく計算 ＋ 熟練度補正 ＋ 図鑑補正 ＋ ギルドランク ＋ 二つ名 ＋ マスターパッシブ ＋ 超越共鳴 ＋ 特化効果 ＋ 熟練度共鳴・マイルストーン
+    // 仕様書⑥に基づく計算 ＋ 熟練度補正 ＋ 図鑑補正 ＋ ギルドランク ＋ 二つ名 ＋ マスターパッシブ ＋ 超越共鳴 ＋ 特化効果 ＋ 熟練度共鳴・マイルストーン・シナジー
     let baseMaxHp = Math.floor((100 + (totalVit * 10) + (bonusHp || 0) + (eq.hp || 0) + (compBonus.flatHp || 0) + (resonance.hp || 0) + (mastery.flatHp || 0) + (skillResBonus.hp || 0) + (skMilestone.flatHp || 0) + (tBonus.hp || 0)) * (stMult.hp || 1));
     if (mastery.hpPct) baseMaxHp = Math.floor(baseMaxHp * (1 + mastery.hpPct / 100));
+    if (skSynergy.hpPct) baseMaxHp = Math.floor(baseMaxHp * (1 + skSynergy.hpPct / 100));
     player.maxHp = Math.max(1, isNaN(baseMaxHp) ? 100 : baseMaxHp);
 
     let baseMaxMp = Math.floor((20 + (totalInt * 5) + (bonusMp || 0) + (eq.mp || 0) + (compBonus.flatMp || 0) + (resonance.mp || 0) + (mastery.flatMp || 0) + (skillResBonus.mp || 0) + (skMilestone.flatMp || 0) + (tBonus.mp || 0)) * (stMult.mp || 1));
@@ -1365,20 +1450,22 @@ function calcStatus() {
     let baseDef = (totalVit * 1) + (bonusDef || 0) + (eq.def || 0) + (compBonus.flatDef || 0) + (mastery.flatDef || 0) + (skillResBonus.def || 0) + (skMilestone.flatDef || 0) + (tBonus.def || 0);
     if (mastery.defPct) baseDef = Math.floor(baseDef * (1 + mastery.defPct / 100));
     if (skMilestone.defPct) baseDef = Math.floor(baseDef * (1 + skMilestone.defPct / 100));
+    if (skSynergy.defPct) baseDef = Math.floor(baseDef * (1 + skSynergy.defPct / 100));
     player.def = Math.max(0, isNaN(baseDef) ? 5 : baseDef);
 
     let baseMdef = (totalInt * 1) + (bonusMdef || 0) + (eq.mdef || 0) + (compBonus.flatMdef || 0) + (mastery.flatMdef || 0) + (skillResBonus.mdef || 0) + (skMilestone.flatMdef || 0) + (tBonus.mdef || 0);
     if (mastery.mdefPct) baseMdef = Math.floor(baseMdef * (1 + mastery.mdefPct / 100));
     if (skMilestone.mdefPct) baseMdef = Math.floor(baseMdef * (1 + skMilestone.mdefPct / 100));
+    if (skSynergy.mdefPct) baseMdef = Math.floor(baseMdef * (1 + skSynergy.mdefPct / 100));
     player.mdef = Math.max(0, isNaN(baseMdef) ? 5 : baseMdef);
     
-    let calcHit = Math.floor((90 + (totalDex * 0.5) + (bonusHit || 0) + (eq.hit || 0) + (stFlat.hit || 0) + (compBonus.flatHit || 0) + (resonance.hit || 0) + (mastery.hit || 0) + (skillResBonus.hit || 0) + (skMilestone.hitRate || 0) + (tBonus.hit || 0)) * 10) / 10;
+    let calcHit = Math.floor((90 + (totalDex * 0.5) + (bonusHit || 0) + (eq.hit || 0) + (stFlat.hit || 0) + (compBonus.flatHit || 0) + (resonance.hit || 0) + (mastery.hit || 0) + (skillResBonus.hit || 0) + (skMilestone.hitRate || 0) + (skSynergy.hitRate || 0) + (subJob.hitRate || 0) + (tBonus.hit || 0)) * 10) / 10;
     player.hitRate = isNaN(calcHit) ? 95 : Math.min(100, Math.max(10, calcHit));
     
-    let calcEva = Math.floor(((totalAgi * 0.5) + (bonusEva || 0) + (eq.eva || 0) + (stFlat.eva || 0) + (compBonus.flatEva || 0) + (resonance.eva || 0) + (mastery.eva || 0) + (skillResBonus.eva || 0) + (skMilestone.evaRate || 0) + (tBonus.eva || 0)) * 10) / 10;
+    let calcEva = Math.floor(((totalAgi * 0.5) + (bonusEva || 0) + (eq.eva || 0) + (stFlat.eva || 0) + (compBonus.flatEva || 0) + (resonance.eva || 0) + (mastery.eva || 0) + (skillResBonus.eva || 0) + (skMilestone.evaRate || 0) + (skSynergy.evaRate || 0) + (subJob.evaRate || 0) + (tBonus.eva || 0)) * 10) / 10;
     player.evasionRate = isNaN(calcEva) ? 10 : Math.min(50, Math.max(0, calcEva));
     
-    let calcDrop = 100 + (totalLuc * 1) + (bonusDrop || 0) + (eq.drop || 0) + (stFlat.drop || 0) + (compBonus.flatDrop || 0) + (resonance.drop || 0) + (mastery.drop || 0) + (skillResBonus.drop || 0) + (skMilestone.dropRate || 0) + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
+    let calcDrop = 100 + (totalLuc * 1) + (bonusDrop || 0) + (eq.drop || 0) + (stFlat.drop || 0) + (compBonus.flatDrop || 0) + (resonance.drop || 0) + (mastery.drop || 0) + (skillResBonus.drop || 0) + (skMilestone.dropRate || 0) + (skSynergy.dropRate || 0) + (subJob.dropBonus || 0) + (guildRank.dropBonus || 0) + (tBonus.drop || 0);
     player.dropRateBonus = isNaN(calcDrop) ? 100 : Math.max(100, calcDrop);
 
     // --- ジョブ特性の適用（最上級職・隠しジョブ全10種含む） ---
@@ -1458,6 +1545,44 @@ function calcStatus() {
         player.def = Math.floor(player.def * 1.35);
         player.mdef = Math.floor(player.mdef * 1.35);
         player.dropRateBonus += 60;
+    }
+    if (player.job === "破壊神") {
+        const wType = getEquippedWeaponType();
+        player.atk = Math.floor(player.atk * (wType === 'axe' ? 1.8 : 1.3));
+    }
+    if (player.job === "神弓・ホークアイ") {
+        const wType = getEquippedWeaponType();
+        player.atk = Math.floor(player.atk * (wType === 'bow' ? 1.7 : 1.25));
+        player.hitRate = Math.min(100, player.hitRate + 20);
+        player.evasionRate = Math.min(60, player.evasionRate + 10);
+    }
+    if (player.job === "大匠神") {
+        player.def = Math.floor(player.def * 1.35);
+        player.mdef = Math.floor(player.mdef * 1.35);
+    }
+    if (player.job === "大豪商") {
+        player.dropRateBonus += 60;
+    }
+
+    // --- 🔀 サブジョブ（副職継承）による乗算倍率の適用 ---
+    if (subJob) {
+        if (subJob.hpMult) player.maxHp = Math.floor(player.maxHp * (1 + subJob.hpMult));
+        if (subJob.mpMult) player.maxMp = Math.floor(player.maxMp * (1 + subJob.mpMult));
+        if (subJob.atkMult) player.atk = Math.floor(player.atk * (1 + subJob.atkMult));
+        if (subJob.matkMult) player.matk = Math.floor(player.matk * (1 + subJob.matkMult));
+        if (subJob.defMult) player.def = Math.floor(player.def * (1 + subJob.defMult));
+        if (subJob.mdefMult) player.mdef = Math.floor(player.mdef * (1 + subJob.mdefMult));
+
+        const wType = getEquippedWeaponType();
+        const isFist = !player.equipment.weapon || wType === 'unarmed';
+        if (subJob.spearHpMult && wType === 'spear') player.maxHp = Math.floor(player.maxHp * (1 + subJob.spearHpMult));
+        if (subJob.spearAtkMult && wType === 'spear') player.atk = Math.floor(player.atk * (1 + subJob.spearAtkMult));
+        if (subJob.fistAtkMult && isFist) player.atk = Math.floor(player.atk * (1 + subJob.fistAtkMult));
+        if (subJob.katanaAtkMult && wType === 'katana') player.atk = Math.floor(player.atk * (1 + subJob.katanaAtkMult));
+        if (subJob.swordAtkMult && wType === 'sword') player.atk = Math.floor(player.atk * (1 + subJob.swordAtkMult));
+        if (subJob.axeAtkMult && wType === 'axe') player.atk = Math.floor(player.atk * (1 + subJob.axeAtkMult));
+        if (subJob.bowAtkMult && wType === 'bow') player.atk = Math.floor(player.atk * (1 + subJob.bowAtkMult));
+        if (subJob.gunAtkMult && wType === 'gun') player.atk = Math.floor(player.atk * (1 + subJob.gunAtkMult));
     }
     
     // --- セット中のパッシブスキルの効果適用（隠しパッシブ全11種含む） ---
@@ -1615,11 +1740,13 @@ function calcStatus() {
     updateSkillsDisplay();
     updateJobMenuDisplay(); // ステータス更新時にメニューを開いていれば描画更新
     updateJobMasteryDisplay(); // ジョブ習得状況UIの更新
+    if (typeof updateSubJobDisplay === "function") updateSubJobDisplay(); // 🔀 サブジョブUIの更新
     if (typeof updateJobMasterySpecUI === "function") updateJobMasterySpecUI(); // 👑 ジョブ超越特化ツリーUI
     if (typeof updateChainAndBuffUI === "function") updateChainAndBuffUI(); // 🔥 連戦チェイン＆修練バフUI
     updateSecretDiscoveryDisplay(); // 🕵️ 隠し要素図鑑の更新
     if (typeof updateCompendiumUI === "function") updateCompendiumUI(); // 📖 冒険者図鑑の更新
     if (typeof updateSkillResonanceUI === "function") updateSkillResonanceUI(); // 🌌 総合熟練度共鳴UIの更新
+    if (typeof updateSkillSynergyUI === "function") updateSkillSynergyUI(); // 🔗 複合シナジー奥義UIの更新
     updateDungeonStatusUI(); // 冒険タブの簡易ステータス・ボタン表示更新
 }
 
@@ -2535,7 +2662,16 @@ function gainSkillExp(type, amount) {
         if (type === "trading") setSkillExpBonus += getEquipmentSetBonusValue("tradeSkillExp");
     }
 
-    const equipSkillMult = 1.0 + equipSkillExpBonus + setSkillExpBonus;
+    // 🔀 ジョブ・サブジョブによる熟練度獲得ボーナス
+    let extraJobSkillBonus = 0;
+    if (player.job === "大匠神" && allCraftSkills.includes(type)) extraJobSkillBonus += 0.50;
+    if (player.job === "大豪商" && (type === "gathering" || type === "trading")) extraJobSkillBonus += 0.50;
+    const subJob = typeof getSubJobBonus === "function" ? getSubJobBonus() : {};
+    if (subJob.allSkillExp) extraJobSkillBonus += subJob.allSkillExp;
+    if (subJob.craftSkillExp && allCraftSkills.includes(type)) extraJobSkillBonus += subJob.craftSkillExp;
+    if (subJob.gatherSkillExp && type === "gathering") extraJobSkillBonus += subJob.gatherSkillExp;
+
+    const equipSkillMult = 1.0 + equipSkillExpBonus + setSkillExpBonus + extraJobSkillBonus;
 
     const safeExpMult = (typeof expMultiplier === 'number' && !isNaN(expMultiplier) && expMultiplier > 0) ? expMultiplier : 1.0;
     amount = Math.round(amount * safeExpMult * jobBonus * haloBonus * chainMult * trainingMult * prefixSkillBonus * masteryBonus * equipSkillMult * 10) / 10;
@@ -2543,6 +2679,7 @@ function gainSkillExp(type, amount) {
     if (!skill) return;
 
     const prevResInfo = getSkillResonanceInfo();
+    const prevSynergyIds = (typeof getSkillSynergyEffects === "function") ? getSkillSynergyEffects().unlockedList.map(a => a.id) : [];
     let leveledUp = false;
 
     skill.exp = Math.round((skill.exp + amount) * 10) / 10;
@@ -2590,6 +2727,16 @@ function gainSkillExp(type, amount) {
             if (b.drop) bStr.push(`泥率+${b.drop}%`);
             addLog(`🌌🎉 <b style="color: #00ffcc; background: #002b3d; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ffcc;">【総合熟練度共鳴 昇格！】</b> 全30種熟練度の合計が <b>Lv.${newResInfo.totalLevel}</b> に到達！ 共鳴ランク【<b style="color:#ffd700;">${newResInfo.currentTier.name}</b>】に覚醒した！（恒久補正: ${bStr.join(' / ')}）`);
         }
+
+        // 🔗 複合シナジー奥義の新規解放チェック
+        if (typeof getSkillSynergyEffects === "function") {
+            const newSynergy = getSkillSynergyEffects();
+            for (const art of newSynergy.unlockedList) {
+                if (!prevSynergyIds.includes(art.id)) {
+                    addLog(`🔗✨ <b style="color: #79c0ff; background: #142233; padding: 2px 8px; border-radius: 4px; border: 1px solid #4a90e2;">【複合シナジー奥義覚醒！】</b> ${art.icon} <b>『${art.name}』</b>が解放された！（${art.desc}）`);
+                }
+            }
+        }
     }
 
     calcStatus();
@@ -2618,6 +2765,13 @@ function gainExp(amount) {
         const setExpBonus = getEquipmentSetBonusValue("exp");
         if (setExpBonus) expMult *= (1 + setExpBonus);
     }
+
+    // 🔀 ジョブ・サブジョブ・複合シナジーによる経験値ボーナス
+    if (player.job === "大豪商") expMult *= 1.25;
+    const subJobExp = (typeof getSubJobBonus === "function" ? getSubJobBonus().expMult : 0) || 0;
+    if (subJobExp) expMult *= (1 + subJobExp);
+    const synExpPct = (typeof getSkillSynergyEffects === "function" ? getSkillSynergyEffects().expPct : 0) || 0;
+    if (synExpPct) expMult *= (1 + synExpPct / 100);
 
     const baseExp = Math.floor(amount * expMult);
 
@@ -2795,8 +2949,8 @@ function checkSecretSkills() {
         }
     });
 
-    // 🕵️ 隠しジョブの解放チェック (全10種)
-    const secretJobs = ["拳聖", "アルケミスト", "ヴァルキリー", "アサシン", "パラディン", "ネクロマンサー", "刀神", "星詠みの賢者", "ゴッドハンド", "万象の覇王"];
+    // 🕵️ 隠しジョブの解放チェック (全14種)
+    const secretJobs = ["拳聖", "アルケミスト", "ヴァルキリー", "アサシン", "パラディン", "ネクロマンサー", "刀神", "星詠みの賢者", "ゴッドハンド", "破壊神", "神弓・ホークアイ", "大匠神", "大豪商", "万象の覇王"];
     secretJobs.forEach(jobId => {
         const jobInfo = JOBS[jobId];
         if (jobInfo && jobInfo.req() && !player.unlockedSkills.includes(jobId)) {
@@ -2875,10 +3029,118 @@ function updateSecretDiscoveryDisplay(force = false) {
 // ジョブチェンジ処理
 function changeJob(newJob) {
     player.job = newJob;
+    if (player.subJob === newJob) {
+        player.subJob = null;
+        addLog(`🔀 メインジョブ変更に伴い、重複していたサブジョブ【${newJob}】を解除しました。`);
+    }
     ensureJobMasteryStructure(newJob);
     calcStatus();
     if (typeof updateJobMasterySpecUI === "function") updateJobMasterySpecUI();
     if (typeof updateJobMasteryDisplay === "function") updateJobMasteryDisplay();
+    if (typeof updateSubJobDisplay === "function") updateSubJobDisplay();
+    if (typeof updateSubJobMenuDisplay === "function") updateSubJobMenuDisplay();
+}
+
+// 🔀 サブジョブ（副職継承）効果の取得
+function getSubJobBonus() {
+    if (!player || !player.subJob || player.subJob === player.job) return {};
+    const jData = player.jobLevels && player.jobLevels[player.subJob];
+    if (!jData || !jData.isMaster) return {};
+    if (typeof SUB_JOB_EFFECTS === "undefined") return {};
+    return SUB_JOB_EFFECTS[player.subJob] || {};
+}
+
+function setSubJob(jobId) {
+    if (!jobId) {
+        player.subJob = null;
+        addLog(`🔀 サブジョブ(副職)を解除しました。`);
+    } else {
+        const jData = player.jobLevels && player.jobLevels[jobId];
+        if (!jData || !jData.isMaster) {
+            addLog(`<span style="color:#ffaa00;">⚠️ MASTER (Lv.100) に到達したジョブのみサブジョブに設定できます。</span>`);
+            return;
+        }
+        if (jobId === player.job) {
+            addLog(`<span style="color:#ffaa00;">⚠️ 現在メインに就いているジョブはサブジョブに設定できません。</span>`);
+            return;
+        }
+        player.subJob = jobId;
+        const eff = (typeof SUB_JOB_EFFECTS !== "undefined" && SUB_JOB_EFFECTS[jobId]) ? SUB_JOB_EFFECTS[jobId].desc : "";
+        addLog(`🔀✨ <b style="color:#d2a8ff;">【サブジョブ設定】</b> 副職に【${jobId}】をセットした！（継承効果: ${eff}）`);
+    }
+    calcStatus();
+    updateSubJobDisplay();
+    updateSubJobMenuDisplay();
+    saveGame(false);
+}
+
+function toggleSubJobMenu() {
+    const menu = document.getElementById('subjob-menu');
+    if (!menu) return;
+    if (menu.style.display === "none" || menu.style.display === "") {
+        menu.style.display = "block";
+        updateSubJobMenuDisplay(true);
+    } else {
+        menu.style.display = "none";
+    }
+}
+
+function updateSubJobDisplay() {
+    const nameEl = document.getElementById('player-subjob');
+    const descEl = document.getElementById('player-subjob-desc');
+    if (!nameEl) return;
+    if (player.subJob && player.jobLevels?.[player.subJob]?.isMaster && player.subJob !== player.job) {
+        nameEl.innerText = player.subJob;
+        nameEl.style.color = "#d2a8ff";
+        nameEl.style.fontWeight = "bold";
+        const eff = (typeof SUB_JOB_EFFECTS !== "undefined" && SUB_JOB_EFFECTS[player.subJob]) ? SUB_JOB_EFFECTS[player.subJob].desc : "";
+        if (descEl) descEl.innerText = eff ? `継承効果: ${eff}` : "";
+    } else {
+        nameEl.innerText = "未設定";
+        nameEl.style.color = "#888";
+        nameEl.style.fontWeight = "normal";
+        if (descEl) descEl.innerText = "※任意のジョブをMASTER(Lv.100)にすると副職をセットできます";
+    }
+}
+
+function updateSubJobMenuDisplay(force = false) {
+    const menu = document.getElementById('subjob-menu');
+    const list = document.getElementById('subjob-list');
+    if (!menu || !list || (!force && menu.style.display === "none")) return;
+    list.innerHTML = "";
+
+    const clearBtn = document.createElement('button');
+    clearBtn.style.cssText = "width: auto; padding: 4px 8px; font-size: 12px; margin-bottom: 5px; background: #3a2222; border: 1px solid #884444; color: #ffaaaa;";
+    clearBtn.innerText = "解除 (なし)";
+    clearBtn.onclick = () => { setSubJob(null); toggleSubJobMenu(); };
+    list.appendChild(clearBtn);
+
+    let masteredCount = 0;
+    for (const jobId in JOBS) {
+        const jData = player.jobLevels?.[jobId];
+        if (!jData || !jData.isMaster) continue;
+        masteredCount++;
+        const btn = document.createElement('button');
+        const eff = (typeof SUB_JOB_EFFECTS !== "undefined" && SUB_JOB_EFFECTS[jobId]) ? SUB_JOB_EFFECTS[jobId].desc : "";
+        btn.title = eff;
+        btn.style.cssText = "width: auto; padding: 4px 8px; font-size: 12px; margin-bottom: 5px;";
+        if (jobId === player.job) {
+            btn.style.background = "#333"; btn.disabled = true; btn.innerText = `${jobId} (メイン中)`;
+        } else if (jobId === player.subJob) {
+            btn.style.background = "#4c3575"; btn.style.border = "1px solid #d2a8ff"; btn.disabled = true; btn.innerText = `✅ ${jobId}`;
+        } else {
+            btn.innerText = `★ ${jobId}`;
+            btn.onclick = () => { setSubJob(jobId); toggleSubJobMenu(); };
+        }
+        list.appendChild(btn);
+    }
+
+    if (masteredCount === 0) {
+        const p = document.createElement('p');
+        p.style.cssText = "font-size: 12px; color: #aaa; margin: 4px 0;";
+        p.innerText = "まだMASTER (Lv.100) に到達したジョブがありません。";
+        list.appendChild(p);
+    }
 }
 
 // 転職メニューの表示切替
@@ -3421,7 +3683,9 @@ function craftItem(recipeId) {
         const artisanBonus = player.passiveSkills.includes("職人の極意") ? 0.25 : 0;
         const jmEff = getCurrentJobMasteryEffects();
         const masteryPrefixBonus = (jmEff.craftPrefixRate || 0) / 100;
-        const upgradeChance = Math.min(0.95, (craftSkillLv - 1) * 0.03 + (player.job === "魔導鍛冶師" ? 0.25 : 0) + artisanBonus + masteryPrefixBonus);
+        const jobPrefixBonus = player.job === "大匠神" ? 0.40 : (player.job === "魔導鍛冶師" ? 0.25 : 0);
+        const subJobPrefixBonus = (player.subJob === "大匠神" || player.subJob === "魔導鍛冶師") ? 0.15 : 0;
+        const upgradeChance = Math.min(0.95, (craftSkillLv - 1) * 0.03 + jobPrefixBonus + subJobPrefixBonus + artisanBonus + masteryPrefixBonus);
         if (Math.random() < upgradeChance) {
             const candidate = rollGoodPrefix();
             if (getPrefixRarity(candidate) > getPrefixRarity(finalPrefix)) {
@@ -3919,9 +4183,12 @@ function getMaterialExchangeValue(fullItemName) {
         ? EXCHANGE_TIER_MULTIPLIER[tierKey]
         : 1.0;
 
-    // アルケミスト特性(+30%)・職人の極意(+20%)・黄金律(+25%)ボーナス ＆ ギルドランク納品ボーナス
+    // アルケミスト(+30%)・大豪商(+50%)・サブジョブ・職人の極意(+20%)・黄金律(+25%)ボーナス ＆ ギルドランク納品ボーナス
     let bonusMult = 1.0;
     if (player.job === "アルケミスト") bonusMult += 0.30;
+    if (player.job === "大豪商") bonusMult += 0.50;
+    const subJobEx = (typeof getSubJobBonus === "function" ? getSubJobBonus().exchangeBonus : 0) || 0;
+    if (subJobEx) bonusMult += subJobEx;
     if (player.passiveSkills && player.passiveSkills.includes("職人の極意")) bonusMult += 0.20;
     if (player.passiveSkills && player.passiveSkills.includes("黄金律")) bonusMult += 0.25;
 
@@ -4819,6 +5086,7 @@ function applySavePayload(data, isManual = false) {
     player.equippedTitle = sp.equippedTitle || null;
     player.battleChain = sp.battleChain || 0;
     player.trainingBuff = sp.trainingBuff || { name: null, steps: 0, jlvExpMult: 1.0, skillExpMult: 1.0 };
+    player.subJob = (sp.subJob && JOBS[sp.subJob] && sp.subJob !== player.job) ? sp.subJob : null;
     player.equipmentPresets = Array.isArray(sp.equipmentPresets) ? sp.equipmentPresets : null;
     ensureEquipmentPresetsStructure();
     for (const jobId in player.jobLevels) {
@@ -5776,13 +6044,20 @@ function nextStep(mode = 'auto') {
         const weaponType = getEquippedWeaponType();
         const jmEff = getCurrentJobMasteryEffects();
         
-        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、自律機巧の歯車輪は1.15倍、セット効果、職能特化補正！）
+        const subJobCombat = typeof getSubJobBonus === "function" ? getSubJobBonus() : {};
+        const skSynergyCombat = typeof getSkillSynergyEffects === "function" ? getSkillSynergyEffects() : {};
+        const skEffCombatPre = getSkillMilestoneEffects();
+
+        // アクティブスキルの事前抽選（集中時は2倍、星詠みの賢者は1.3倍、刀神は1.25倍、オメガ・オーバークロッカーは1.2倍、自律機巧の歯車輪は1.15倍、セット効果、シナジー、サブジョブ、職能特化補正！）
         const triggerBoost = (mode === 'focus' ? 2.0 : 1.0)
             * (player.job === "星詠みの賢者" ? 1.3 : 1.0)
             * (player.job === "刀神" ? 1.25 : 1.0)
             * (hasEquippedSpecial("omega_overclock") ? 1.20 : 1.0)
             * (hasEquippedSpecial("automaton_core") ? 1.15 : 1.0)
             * (1.0 + ((typeof getEquipmentSetBonusValue === "function" ? getEquipmentSetBonusValue("skillTrigger") : 0) / 100))
+            * (1.0 + (subJobCombat.skillTriggerMult || 0))
+            * (1.0 + ((skSynergyCombat.skillRate || 0) / 100))
+            * (1.0 + ((skEffCombatPre.skillRate || 0) / 100))
             * (1.0 + (jmEff.skillTrigger || 0) / 100);
         for (const skillId of player.activeSkills) {
             const skillData = ACTIVE_SKILLS[skillId];
@@ -5861,6 +6136,15 @@ function nextStep(mode = 'auto') {
                     const pierceRatio = Math.max(0, 1 - (jmEff.defPierce / 100));
                     effectiveEnemyDef = Math.floor(effectiveEnemyDef * pierceRatio);
                 }
+                if (player.job === "破壊神") {
+                    effectiveEnemyDef = Math.floor(effectiveEnemyDef * 0.65); // 敵DEF35%貫通
+                }
+                if (subJobCombat.defPierce > 0) {
+                    effectiveEnemyDef = Math.floor(effectiveEnemyDef * Math.max(0, 1 - subJobCombat.defPierce));
+                }
+                if (skSynergyCombat.defPierce > 0) {
+                    effectiveEnemyDef = Math.floor(effectiveEnemyDef * Math.max(0, 1 - skSynergyCombat.defPierce / 100));
+                }
                 dmgToEnemy = Math.max(1, dmgToEnemy - effectiveEnemyDef);
             }
 
@@ -5870,19 +6154,22 @@ function nextStep(mode = 'auto') {
             }
 
             // パッシブ・隠しジョブ・秘技・職能特化・熟練度奥義の効果：クリティカル発生判定
-            const skEffCombat = getSkillMilestoneEffects();
+            const skEffCombat = skEffCombatPre;
             let isCritical = false;
             let critRate = (player.passiveSkills.includes("オーバークロック") ? 0.25 : 0.05)
                 + (player.passiveSkills.includes("心眼") ? 0.10 : 0)
                 + (player.job === "アサシン" ? 0.25 : 0)
                 + (player.job === "刀神" ? 0.30 : 0)
+                + (player.job === "神弓・ホークアイ" ? 0.25 : 0)
                 + (player.job === "万象の覇王" ? 0.20 : 0)
                 + (triggeredSkill && triggeredSkill.name === "百歩穿楊" ? 0.30 : 0)
                 + (weaponType === 'sword' ? (player.skills.sword.level - 1) * 0.005 : 0)
                 + (weaponType === 'katana' ? (player.skills.katana.level - 1) * 0.003 : 0)
                 + (mode === 'focus' ? 0.15 : 0)
                 + ((jmEff.critRate || 0) / 100)
-                + ((skEffCombat.critRate || 0) / 100);
+                + ((skEffCombat.critRate || 0) / 100)
+                + ((skSynergyCombat.critRate || 0) / 100)
+                + (subJobCombat.critRate || 0);
             if (hasEquippedSpecial("cosmic_ring")) critRate += 0.15; // 星竜のコズミックリング
 
             let katanaOugiTriggered = false;
@@ -5895,9 +6182,12 @@ function nextStep(mode = 'auto') {
                 let critMult = (weaponType === 'gun' && player.job === "魔導機工師") ? 2.0 : (weaponType === 'gun' ? 1.7 : 1.5);
                 if (player.job === "アサシン") critMult += 0.4;
                 if (player.job === "刀神") critMult += 0.3;
+                if (player.job === "破壊神") critMult += 0.4;
                 if (hasEquippedSpecial("cosmic_ring")) critMult += 0.5; // 星竜のコズミックリング: 会心倍率+0.5
                 critMult += ((jmEff.critDmg || 0) / 100);
                 critMult += ((skEffCombat.critDmg || 0) / 100);
+                critMult += ((skSynergyCombat.critDmg || 0) / 100);
+                critMult += (subJobCombat.critDmg || 0);
                 const setCritDmg = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("critDmg") : 0;
                 if (setCritDmg > 0) critMult += (setCritDmg / 100);
 
@@ -5940,13 +6230,19 @@ function nextStep(mode = 'auto') {
                 player.hp = Math.min(player.maxHp, player.hp + heal);
                 addLog(`🩸 <span style="color: #ff6666;">吸血効果！ HPが <b>${heal}</b> 回復した！</span>`);
             }
-            // ネクロマンサー特性：死霊魔術ドレイン（攻撃時HP8%・MP4%吸収）
+            // ネクロマンサー特性：死霊魔術ドレイン（攻撃時HP8%・MP4%吸収）＋サブジョブ継承
             if (player.job === "ネクロマンサー" && dmgToEnemy > 0) {
                 const drainHp = Math.max(1, Math.floor(dmgToEnemy * 0.08));
                 const drainMp = Math.max(1, Math.floor(dmgToEnemy * 0.04));
                 player.hp = Math.min(player.maxHp, player.hp + drainHp);
                 player.mp = Math.min(player.maxMp, player.mp + drainMp);
                 addLog(`💀 <span style="color: #cc88ff;">死霊吸収！ HPが <b>${drainHp}</b>、MPが <b>${drainMp}</b> 回復した！</span>`);
+            } else if ((subJobCombat.drainHp || subJobCombat.drainMp) && dmgToEnemy > 0) {
+                const drainHp = subJobCombat.drainHp ? Math.max(1, Math.floor(dmgToEnemy * subJobCombat.drainHp)) : 0;
+                const drainMp = subJobCombat.drainMp ? Math.max(1, Math.floor(dmgToEnemy * subJobCombat.drainMp)) : 0;
+                player.hp = Math.min(player.maxHp, player.hp + drainHp);
+                player.mp = Math.min(player.maxMp, player.mp + drainMp);
+                addLog(`💀 <span style="color: #cc88ff;">副職・死霊吸収！ HP+${drainHp} / MP+${drainMp}</span>`);
             }
             // ハイドラの再生毒腺リング：攻撃命中時に猛毒追撃（自身の攻撃力・魔攻の1.2倍を上限として格上への割合削りすぎを防止）
             if (hasEquippedSpecial("hydra_venom") && enemy.hp > 0) {
@@ -5984,6 +6280,15 @@ function nextStep(mode = 'auto') {
                 player.hp = Math.min(player.maxHp, player.hp + regenHp);
                 player.mp = Math.min(player.maxMp, player.mp + regenMp);
                 addLog(`👼✨ <span style="color: #ffd700;">【天界セラフィムの祝福】 HPが <b>${regenHp}</b>、MPが <b>${regenMp}</b> 聖光回復した！</span>`);
+            }
+            // 🔗 シナジー奥義・極限マイルストーンによる自動リジェネ
+            const totalSkillRegenHp = (skSynergyCombat.hpRegenPct || 0) + (skEffCombat.hpRegenPct || 0);
+            const totalSkillRegenMp = (skSynergyCombat.mpRegenPct || 0) + (skEffCombat.mpRegenPct || 0);
+            if ((totalSkillRegenHp > 0 || totalSkillRegenMp > 0) && player.hp > 0) {
+                const rHp = totalSkillRegenHp > 0 ? Math.max(1, Math.floor(player.maxHp * (totalSkillRegenHp / 100))) : 0;
+                const rMp = totalSkillRegenMp > 0 ? Math.max(1, Math.floor(player.maxMp * (totalSkillRegenMp / 100))) : 0;
+                player.hp = Math.min(player.maxHp, player.hp + rHp);
+                player.mp = Math.min(player.maxMp, player.mp + rMp);
             }
         } else {
             addLog(`💨 あなたの攻撃は外れた！(ミス)`);
@@ -6070,10 +6375,17 @@ function nextStep(mode = 'auto') {
             if (hasEquippedSpecial("odin_rune")) {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * 0.85)); // 15%軽減
             }
-            // 🛡️ 重鉄ゴーレムセット効果（被ダメ10%カット等）
+            // 🛡️ 重鉄ゴーレムセット効果・サブジョブ・シナジー・極限マイルストーンによる被ダメ軽減
             const setDmgCut = (typeof getEquipmentSetBonusValue === "function") ? getEquipmentSetBonusValue("dmgCutPct") : 0;
             if (setDmgCut > 0) {
                 dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - setDmgCut / 100)));
+            }
+            if (subJobCombat.dmgCut > 0) {
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * (1 - subJobCombat.dmgCut)));
+            }
+            const extraSkillDmgCut = (skSynergyCombat.dmgCutPct || 0) + (skEffCombatPre.dmgCutPct || 0);
+            if (extraSkillDmgCut > 0) {
+                dmgToPlayer = Math.max(1, Math.floor(dmgToPlayer * Math.max(0.2, 1 - extraSkillDmgCut / 100)));
             }
             const jmCutEff = getCurrentJobMasteryEffects();
             if (jmCutEff.dmgCut > 0) {

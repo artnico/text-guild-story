@@ -2537,8 +2537,8 @@ const JOBS = {
     "刀神": {
         name: "刀神",
         isSecretJob: true,
-        req: () => (player.stats.str >= 85) && (player.stats.dex >= 75) && (player.stats.agi >= 70) && (player.skills.sword?.level >= 50) && ((player.jobLevels["戦士"]?.level || 0) >= 50) && ((player.jobLevels["魔法剣士"]?.level || 0) >= 40),
-        masterPassive: { name: "明鏡止水", effectType: "dexPercent", value: 1.18, description: "基礎および装備の DEX が 18% 増加する（就役中は剣装備時ATK1.6倍・会心率+30%・スキル発動率1.25倍）" },
+        req: () => (player.stats.str >= 85) && (player.stats.dex >= 75) && (player.stats.agi >= 70) && ((player.skills.katana?.level >= 50) || (player.skills.sword?.level >= 50)) && ((player.jobLevels["戦士"]?.level || 0) >= 50) && ((player.jobLevels["魔法剣士"]?.level || 0) >= 40),
+        masterPassive: { name: "明鏡止水", effectType: "dexPercent", value: 1.18, description: "基礎および装備の DEX が 18% 増加する（就役中は刀装備時ATK1.7倍・剣1.5倍・会心率+30%・スキル発動率1.25倍）" },
         expFactor: 1.30
     },
     "星詠みの賢者": {
@@ -2554,6 +2554,34 @@ const JOBS = {
         req: () => (player.stats.str >= 90) && (player.stats.vit >= 80) && (player.stats.agi >= 75) && (player.skills.unarmed?.level >= 50) && ((player.jobLevels["拳聖"]?.level || 0) >= 50) && ((player.jobLevels["パラディン"]?.level || 0) >= 40),
         masterPassive: { name: "神の拳", effectType: "atkPercent", value: 1.20, description: "最終的な 物理攻撃力(ATK) が 20% 増加する（就役中は素手/ナックル時ATK2.5倍・DEF/MDEF1.4倍・毎ターンHP5%回復）" },
         expFactor: 1.32
+    },
+    "破壊神": {
+        name: "破壊神",
+        isSecretJob: true,
+        req: () => (player.stats.str >= 80) && (player.stats.vit >= 65) && (player.skills.axe?.level >= 50) && (player.skills.rush?.level >= 35) && ((player.jobLevels["ベルセルク"]?.level || 0) >= 40),
+        masterPassive: { name: "壊滅の剛力", effectType: "atkPercent", value: 1.20, description: "最終的な 物理攻撃力(ATK) が 20% 増加する（就役中は斧装備時ATK1.8倍・敵DEF35%貫通・会心威力+0.4）" },
+        expFactor: 1.30
+    },
+    "神弓・ホークアイ": {
+        name: "神弓・ホークアイ",
+        isSecretJob: true,
+        req: () => (player.stats.dex >= 80) && (player.stats.agi >= 70) && (player.skills.bow?.level >= 50) && (player.skills.search?.level >= 35) && ((player.jobLevels["狩人"]?.level || 0) >= 50),
+        masterPassive: { name: "神域の射手", effectType: "dexPercent", value: 1.18, description: "基礎および装備の DEX が 18% 増加する（就役中は弓装備時ATK1.7倍・命中+20%・会心率+25%・回避+10%）" },
+        expFactor: 1.30
+    },
+    "大匠神": {
+        name: "大匠神",
+        isSecretJob: true,
+        req: () => (player.skills.blacksmith?.level >= 30) && (player.skills.sewing?.level >= 30) && (player.skills.handicraft?.level >= 30) && (player.skills.refining?.level >= 30) && ((player.jobLevels["魔導鍛冶師"]?.level || 0) >= 40),
+        masterPassive: { name: "神工鬼斧", effectType: "allStatsPercent", value: 1.12, description: "全基礎ステータスが 12% 増加する（就役中はDEF/MDEF1.35倍・クラフト良称号率＆+値大幅UP・クラフト熟練度+50%）" },
+        expFactor: 1.28
+    },
+    "大豪商": {
+        name: "大豪商",
+        isSecretJob: true,
+        req: () => (player.stats.luc >= 75) && (player.skills.trading?.level >= 40) && (player.skills.gathering?.level >= 35) && (player.skills.cooking?.level >= 35) && ((player.jobLevels["トレジャーシーカー"]?.level || 0) >= 40),
+        masterPassive: { name: "黄金律・極", effectType: "dropBonus", value: 30, description: "最終的な アイテムドロップ率 が 30% 増加する（就役中は泥率+60%・納品Pt1.5倍・採取/交易熟練度+50%・獲得EXP+25%）" },
+        expFactor: 1.28
     },
     "万象の覇王": {
         name: "万象の覇王",
@@ -2707,6 +2735,26 @@ const JOB_MASTERY_SPECS = {
         spec2: { name: "神性の剛力", desc: "STR +2.5, 最大HP +2.0% / Pt", type: "strHp", str: 2.5, hpPct: 2.0 },
         spec3: { name: "金剛不壊", desc: "DEF +2.0%, MDEF +2.0% / Pt", type: "defMdefPct", value: 2.0 }
     },
+    "破壊神": {
+        spec1: { name: "破城の斧撃", desc: "斧・剣装備時ATK +2.8% / Pt", type: "axeSwordAtk", value: 2.8 },
+        spec2: { name: "タイタンの肉体", desc: "STR +2.5, 敵防御無視 +1.0% / Pt (最大50%)", type: "strPierce", str: 2.5, pierce: 1.0, max: 50 },
+        spec3: { name: "一撃必殺の構え", desc: "会心ダメージ倍率 +3.5% / Pt", type: "critDmg", value: 3.5 }
+    },
+    "神弓・ホークアイ": {
+        spec1: { name: "流星矢の連射", desc: "弓・銃装備時ATK +2.8% / Pt", type: "bowGunAtk", value: 2.8 },
+        spec2: { name: "鷹の極眼", desc: "命中率 +1.0%, 会心率 +0.6% / Pt", type: "hitCrit", hit: 1.0, crit: 0.6 },
+        spec3: { name: "風を纏う足捌き", desc: "AGI補正 +1.8%, 回避率 +0.5% / Pt", type: "agiEva", agiPct: 1.8, eva: 0.5 }
+    },
+    "大匠神": {
+        spec1: { name: "名匠の魂EX", desc: "クラフト良称号昇格率 +2.5% / Pt", type: "craftPrefixRate", value: 2.5 },
+        spec2: { name: "不壊の鎧纏い", desc: "DEF +2.0%, MDEF +2.0% / Pt", type: "defMdefPct", value: 2.0 },
+        spec3: { name: "神域の魔力刻印", desc: "全基礎ステータス +2.0, 全耐性 +0.8% / Pt", type: "allStats", value: 2.0 }
+    },
+    "大豪商": {
+        spec1: { name: "黄金の嗅覚EX", desc: "ドロップ率 +3.5% / Pt", type: "dropRate", value: 3.5 },
+        spec2: { name: "豊穣の商才", desc: "交換屋の素材納品Pt +2.5% / Pt", type: "exchangeBonus", value: 2.5 },
+        spec3: { name: "グルメの活力", desc: "獲得EXP ＆ 全熟練度 +2.0% / Pt", type: "expBonus", value: 2.0 }
+    },
     "万象の覇王": {
         spec1: { name: "森羅万象", desc: "全基礎ステータス +2.5 / Pt", type: "allStats", value: 2.5 },
         spec2: { name: "覇道の力", desc: "全与ダメージ +1.8% / Pt", type: "dmgBonus", value: 1.8 },
@@ -2749,9 +2797,13 @@ const SECRET_DISCOVERY_HINTS = [
     { id: "アサシン", kind: "job", name: "アサシン", hint: "基礎AGI 60 ＋ 基礎DEX 50 ＋ 基礎LUC 45 ＋ 回避Lv30 ＋ 盗賊JLV50" },
     { id: "パラディン", kind: "job", name: "パラディン", hint: "基礎VIT 60 ＋ 基礎INT 40 ＋ 盾術Lv30 ＋ 警戒Lv25 ＋ 戦士JLV40" },
     { id: "ネクロマンサー", kind: "job", name: "ネクロマンサー", hint: "基礎INT 70 ＋ 基礎VIT 50 ＋ 魔法Lv35 ＋ 水魔法Lv25 ＋ 地魔法Lv25 ＋ 魔術師JLV45" },
-    { id: "刀神", kind: "job", name: "刀神", hint: "基礎STR 85 ＋ 基礎DEX 75 ＋ 基礎AGI 70 ＋ 剣術Lv50 ＋ 戦士JLV50 ＋ 魔法剣士JLV40" },
+    { id: "刀神", kind: "job", name: "刀神", hint: "基礎STR 85 ＋ 基礎DEX 75 ＋ 基礎AGI 70 ＋ (刀術Lv50 または 剣術Lv50) ＋ 戦士JLV50 ＋ 魔法剣士JLV40" },
     { id: "星詠みの賢者", kind: "job", name: "星詠みの賢者", hint: "基礎INT 85 ＋ 基礎LUC 75 ＋ 探索Lv35 ＋ 魔術師JLV60 ＋ 精霊使いJLV40" },
     { id: "ゴッドハンド", kind: "job", name: "ゴッドハンド", hint: "基礎STR 90 ＋ 基礎VIT 80 ＋ 基礎AGI 75 ＋ 素手Lv50 ＋ 拳聖JLV50 ＋ パラディンJLV40" },
+    { id: "破壊神", kind: "job", name: "破壊神", hint: "基礎STR 80 ＋ 基礎VIT 65 ＋ 斧術Lv50 ＋ 強行Lv35 ＋ ベルセルクJLV40" },
+    { id: "神弓・ホークアイ", kind: "job", name: "神弓・ホークアイ", hint: "基礎DEX 80 ＋ 基礎AGI 70 ＋ 弓術Lv50 ＋ 探索Lv35 ＋ 狩人JLV50" },
+    { id: "大匠神", kind: "job", name: "大匠神", hint: "鍛冶・裁縫・工作・鍛錬すべてLv30 ＋ 魔導鍛冶師JLV40" },
+    { id: "大豪商", kind: "job", name: "大豪商", hint: "基礎LUC 75 ＋ 交易Lv40 ＋ 採取Lv35 ＋ 調理Lv35 ＋ トレジャーシーカーJLV40" },
     { id: "万象の覇王", kind: "job", name: "万象の覇王", hint: "全基礎ステータス100以上 ＋ 任意の3ジョブをMASTER(Lv100)" }
 ];
 
@@ -3303,3 +3355,143 @@ const SKILL_RESONANCE_TIERS = [
     { reqTotal: 1500, name: "森羅万象の超越者", bonus: { allStats: 130, hp: 1400, mp: 700, allRes: 20, critPct: 12, critDmg: 0.40, skillExpPct: 40, drop: 35 }, desc: "全基礎ステ+130, HP+1400, MP+700, 全耐性+20%, 会心倍率+0.4, 泥率+35%" },
     { reqTotal: 2000, name: "👑 神技の覇王",     bonus: { allStats: 200, hp: 2200, mp: 1100, allRes: 30, critPct: 15, critDmg: 0.60, dmgCutPct: 15, dmgDealtPct: 20, drop: 50, skillExpPct: 50 }, desc: "全基礎ステ+200, HP+2200, MP+1100, 被ダメ15%カット, 与ダメ+20%, 全耐性+30%, 泥率+50%" }
 ];
+
+// 12.5 🌟 全熟練度Lv.150 / Lv.200 極限マイルストーン自動拡張
+(function appendExtremeSkillMilestones() {
+    if (typeof SKILL_MASTER_DATA === "undefined") return;
+    const catBonus150 = {
+        weapon:  { desc: "ATK+8%, MATK+8%, 会心率+3%", bonus: { atkPct: 8, matkPct: 8, critRate: 3 } },
+        magic:   { desc: "MATK+10%, 最大MP+100", bonus: { matkPct: 10, flatMp: 100 } },
+        defense: { desc: "最大HP+200, DEF+10%, MDEF+10%", bonus: { flatHp: 200, defPct: 10, mdefPct: 10 } },
+        craft:   { desc: "全基礎能力強化（HP+150, ATK+30, DEF+30）", bonus: { flatHp: 150, flatAtk: 30, flatDef: 30 } },
+        action:  { desc: "ドロップ率+15%, 命中+4%, 回避+3%", bonus: { dropRate: 15, hitRate: 4, evaRate: 3 } }
+    };
+    const catBonus200 = {
+        weapon:  { desc: "ATK+15%, MATK+15%, 会心ダメ+30%", bonus: { atkPct: 15, matkPct: 15, critDmg: 30 } },
+        magic:   { desc: "MATK+18%, スキル発動率+4%", bonus: { matkPct: 18, skillRate: 4 } },
+        defense: { desc: "最大HP+400, 被ダメ3%軽減, 毎ターンHP2%回復", bonus: { flatHp: 400, dmgCutPct: 3, hpRegenPct: 2 } },
+        craft:   { desc: "ATK+60, MATK+60, DEF+60, MDEF+60", bonus: { flatAtk: 60, flatMatk: 60, flatDef: 60, flatMdef: 60 } },
+        action:  { desc: "ドロップ率+30%, スキル発動率+4%, 回避+4%", bonus: { dropRate: 30, skillRate: 4, evaRate: 4 } }
+    };
+    for (const key in SKILL_MASTER_DATA) {
+        const s = SKILL_MASTER_DATA[key];
+        const b150 = catBonus150[s.category] || catBonus150.action;
+        const b200 = catBonus200[s.category] || catBonus200.action;
+        const baseTitle = s.name.replace("熟練度", "");
+        s.milestones.push(
+            { level: 150, name: `【極限】${baseTitle}の極致`, desc: b150.desc, extremeBonus: b150.bonus },
+            { level: 200, name: `【神域】${baseTitle}神髄`, desc: b200.desc, extremeBonus: b200.bonus }
+        );
+    }
+})();
+
+// 13. 🔗 複合シナジー奥義 (複数熟練度の組み合わせで自動解放される秘技)
+const SKILL_SYNERGY_ARTS = [
+    {
+        id: "iaigiri_mind",
+        name: "心眼・居合斬り",
+        icon: "⚔️🍃",
+        condDesc: "刀術Lv.50 ＋ 回避Lv.50",
+        desc: "会心率+10%, 会心ダメージ倍率+25%, 回避率+5%",
+        check: (sk) => (sk.katana?.level || 1) >= 50 && (sk.evasion?.level || 1) >= 50,
+        bonus: { critRate: 10, critDmg: 25, evaRate: 5 }
+    },
+    {
+        id: "fortress_tank",
+        name: "不動の重戦車",
+        icon: "🛡️🪨",
+        condDesc: "盾術Lv.50 ＋ 生存Lv.50",
+        desc: "最大HP+15%, DEF+15%, 被ダメージ5%軽減",
+        check: (sk) => (sk.shield?.level || 1) >= 50 && (sk.survival?.level || 1) >= 50,
+        bonus: { hpPct: 15, defPct: 15, dmgCutPct: 5 }
+    },
+    {
+        id: "double_chant",
+        name: "二重詠唱・極",
+        icon: "🔮✨",
+        condDesc: "魔法Lv.50 ＋ 火魔法Lv.30 ＋ 水魔法Lv.30",
+        desc: "MATK+12%, スキル発動率+8%",
+        check: (sk) => (sk.magic?.level || 1) >= 50 && (sk.fireMagic?.level || 1) >= 30 && (sk.waterMagic?.level || 1) >= 30,
+        bonus: { matkPct: 12, skillRate: 8 }
+    },
+    {
+        id: "storm_combo",
+        name: "嵐の連撃",
+        icon: "👊🔥",
+        condDesc: "素手Lv.50 ＋ 強行Lv.40",
+        desc: "物理ATK+12%, 毎行動時HP2%自動回復",
+        check: (sk) => (sk.unarmed?.level || 1) >= 50 && (sk.rush?.level || 1) >= 40,
+        bonus: { atkPct: 12, hpRegenPct: 2 }
+    },
+    {
+        id: "precision_snipe",
+        name: "精密狙撃システム",
+        icon: "🏹🔫",
+        condDesc: "弓術Lv.40 ＋ 銃術Lv.40 ＋ 探索Lv.40",
+        desc: "命中率+10%, 敵防御15%貫通, 会心率+8%",
+        check: (sk) => (sk.bow?.level || 1) >= 40 && (sk.gun?.level || 1) >= 40 && (sk.search?.level || 1) >= 40,
+        bonus: { hitRate: 10, defPierce: 15, critRate: 8 }
+    },
+    {
+        id: "divine_forging",
+        name: "神域鍛造の秘儀",
+        icon: "⚒️🧵",
+        condDesc: "鍛冶Lv.40 ＋ 鍛錬Lv.40 ＋ 裁縫Lv.40",
+        desc: "全基礎ステータス+15, DEF/MDEF+10%",
+        check: (sk) => (sk.blacksmith?.level || 1) >= 40 && (sk.refining?.level || 1) >= 40 && (sk.sewing?.level || 1) >= 40,
+        bonus: { allStats: 15, defPct: 10, mdefPct: 10 }
+    },
+    {
+        id: "golden_route",
+        name: "黄金の探索ルート",
+        icon: "🌿⚖️",
+        condDesc: "採取Lv.40 ＋ 交易Lv.40 ＋ 行軍Lv.40",
+        desc: "ドロップ率+35%, 獲得EXP+15%",
+        check: (sk) => (sk.gathering?.level || 1) >= 40 && (sk.trading?.level || 1) >= 40 && (sk.autoWalk?.level || 1) >= 40,
+        bonus: { dropRate: 35, expPct: 15 }
+    },
+    {
+        id: "elemental_harmony",
+        name: "森羅万象の調和",
+        icon: "🌈✨",
+        condDesc: "火/水/風/地耐性 すべてLv.40以上",
+        desc: "全基礎ステータス+20, 毎行動時HP/MP 2%自動回復",
+        check: (sk) => (sk.fireRes?.level || 1) >= 40 && (sk.waterRes?.level || 1) >= 40 && (sk.windRes?.level || 1) >= 40 && (sk.earthRes?.level || 1) >= 40,
+        bonus: { allStats: 20, hpRegenPct: 2, mpRegenPct: 2 }
+    }
+];
+
+// 14. 🔀 サブジョブ（副職継承）効果マスターデータ（MASTER済みジョブを副職にセットすると継承効果を発揮！）
+const SUB_JOB_EFFECTS = {
+    "冒険者":             { desc: "獲得EXP/JLV+8%, 全基礎ステ+5", expMult: 0.08, allStats: 5 },
+    "戦士":               { desc: "ATK+8%, HP+8%", atkMult: 0.08, hpMult: 0.08 },
+    "魔術師":             { desc: "MATK+8%, MP+8%", matkMult: 0.08, mpMult: 0.08 },
+    "狩人":               { desc: "命中+6%, 会心率+5%, AGI+5%", hitRate: 6, critRate: 0.05, agiMult: 0.05 },
+    "盗賊":               { desc: "ドロップ率+12%, 回避+5%", dropBonus: 12, evaRate: 5 },
+    "魔法剣士":           { desc: "ATK+8%, MATK+8%", atkMult: 0.08, matkMult: 0.08 },
+    "ガンスリンガー":     { desc: "銃時ATK+15%, 会心率+6%, 回避+4%", gunAtkMult: 0.15, critRate: 0.06, evaRate: 4 },
+    "魔導鍛冶師":         { desc: "DEF+10%, MDEF+10%, クラフト熟練度+15%", defMult: 0.10, mdefMult: 0.10, craftSkillExp: 0.15 },
+    "精霊使い":           { desc: "MATK+12%, MP+12%", matkMult: 0.12, mpMult: 0.12 },
+    "レンジャー":         { desc: "命中+5%, 回避+5%, 採取熟練度+20%", hitRate: 5, evaRate: 5, gatherSkillExp: 0.20 },
+    "ベルセルク":         { desc: "ATK+12%, 会心ダメ+15%", atkMult: 0.12, critDmg: 0.15 },
+    "トレジャーシーカー": { desc: "ドロップ率+20%", dropBonus: 20 },
+    "竜騎士":             { desc: "槍時HP+25%, 槍時ATK+25%", spearHpMult: 0.25, spearAtkMult: 0.25 },
+    "魔導機工師":         { desc: "ドロップ率+25%, スキル発動率+10%", dropBonus: 25, skillTriggerMult: 0.10 },
+    "神聖至高職":         { desc: "最大MP+40%, 全属性耐性強化(+15%)", mpMult: 0.40, allResMult: 0.15 },
+    "大賢者":             { desc: "MATK+20%, スキル発動率+10%", matkMult: 0.20, skillTriggerMult: 0.10 },
+    "深淵の踏破者":       { desc: "HP/ATK/MATK+12%, 熟練度獲得+25%", hpMult: 0.12, atkMult: 0.12, matkMult: 0.12, allSkillExp: 0.25 },
+    "拳聖":               { desc: "素手/拳時ATK+50%, 回避+8%", fistAtkMult: 0.50, evaRate: 8 },
+    "アルケミスト":       { desc: "ドロップ率+15%, MP+15%, 納品Pt+15%", dropBonus: 15, mpMult: 0.15, exchangeBonus: 0.15 },
+    "ヴァルキリー":       { desc: "ATK/MATK/DEF+15%, 回避+5%", atkMult: 0.15, matkMult: 0.15, defMult: 0.15, evaRate: 5 },
+    "アサシン":           { desc: "回避+6%, 会心率+12%, 泥率+18%", evaRate: 6, critRate: 0.12, dropBonus: 18 },
+    "パラディン":         { desc: "DEF/MDEF+20%, 被ダメ10%軽減", defMult: 0.20, mdefMult: 0.20, dmgCut: 0.10 },
+    "ネクロマンサー":     { desc: "MATK+18%, MP+12%, 攻撃時HP4%・MP2%吸収", matkMult: 0.18, mpMult: 0.12, drainHp: 0.04, drainMp: 0.02 },
+    "刀神":               { desc: "刀時ATK+35%(剣+25%), 会心率+15%, 命中+6%, スキル発動+12%", katanaAtkMult: 0.35, swordAtkMult: 0.25, critRate: 0.15, hitRate: 6, skillTriggerMult: 0.12 },
+    "星詠みの賢者":       { desc: "MATK+20%, スキル発動+15%, 泥率+20%", matkMult: 0.20, skillTriggerMult: 0.15, dropBonus: 20 },
+    "ゴッドハンド":       { desc: "素手/拳時ATK+60%, DEF/MDEF+20%, HP+15%", fistAtkMult: 0.60, defMult: 0.20, mdefMult: 0.20, hpMult: 0.15 },
+    "破壊神":             { desc: "斧時ATK+40%, 敵DEF15%貫通, 会心ダメ+20%", axeAtkMult: 0.40, defPierce: 0.15, critDmg: 0.20 },
+    "神弓・ホークアイ":   { desc: "弓時ATK+35%, 命中+10%, 会心率+12%, 回避+5%", bowAtkMult: 0.35, hitRate: 10, critRate: 0.12, evaRate: 5 },
+    "大匠神":             { desc: "DEF/MDEF+18%, クラフト熟練度+25%, 全ステ+10", defMult: 0.18, mdefMult: 0.18, craftSkillExp: 0.25, allStats: 10 },
+    "大豪商":             { desc: "ドロップ率+30%, 納品Pt+25%, 獲得EXP+12%", dropBonus: 30, exchangeBonus: 0.25, expMult: 0.12 },
+    "万象の覇王":         { desc: "全能力(HP/MP/ATK/MATK/DEF/MDEF)+18%, 泥率+30%", hpMult: 0.18, mpMult: 0.18, atkMult: 0.18, matkMult: 0.18, defMult: 0.18, mdefMult: 0.18, dropBonus: 30 }
+};
